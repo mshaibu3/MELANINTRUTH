@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: melanintruth
+      POSTGRES_PASSWORD: change-me
+      POSTGRES_DB: melanintruth
+    ports: ["5432:5432"]
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+  api:
+    build: ./melanintruth-ai/services/api
+    env_file: .env.example
+    ports: ["8000:8000"]
+    depends_on: [postgres, redis]
+volumes:
+  postgres_data:

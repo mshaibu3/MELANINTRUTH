@@ -1,0 +1,44 @@
+name: api-integration
+on: [push, pull_request]
+jobs:
+  api:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: melanintruth
+          POSTGRES_PASSWORD: change-me
+          POSTGRES_DB: melanintruth
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U melanintruth -d melanintruth"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      APP_ENV: test
+      DATABASE_URL: postgresql+psycopg://melanintruth:change-me@localhost:5432/melanintruth
+      JWT_SECRET: test-only-change-me
+      PYTHONPATH: melanintruth-ai/services/api
+      REQUIRE_FASTAPI_TESTS: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: melanintruth-ai/services/api/requirements.txt
+      - run: python -m pip install --upgrade pip
+      - run: make api-install
+      - run: make api-migrate
+      - run: make migration-verify
+      - run: make api-test
+      - run: make api-openapi
+      - run: make openapi-check
+      - run: git diff --exit-code docs/api/openapi.json
+      - run: make test-postgres-real
+      - uses: actions/upload-artifact@v4
+        with:
+          name: openapi-json
+          path: docs/api/openapi.json

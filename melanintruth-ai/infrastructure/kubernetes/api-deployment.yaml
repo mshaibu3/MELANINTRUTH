@@ -1,0 +1,4 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: melanintruth-api}
+spec: {replicas: 2, selector: {matchLabels: {app: melanintruth-api}}, template: {metadata: {labels: {app: melanintruth-api}}, spec: {containers: [{name: api, image: melanintruth-api:latest, ports: [{containerPort: 8000}], envFrom: [{secretRef: {name: melanintruth-api-env}}]}]}}}

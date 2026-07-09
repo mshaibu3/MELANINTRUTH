@@ -1,0 +1,2 @@
+const sections=['users','audit logs','security events','model registry','dataset registry','bias reports','incidents','safety review queue','tenant overview','anonymised analytics','shade gap analysis','consent-based access','audit trail'];
+export default function Page(){return <main aria-label="Admin and enterprise dashboard"><h1>Governed admin dashboard</h1><ul>{sections.map(s=><li key={s}>{s}</li>)}</ul></main>}

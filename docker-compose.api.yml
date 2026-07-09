@@ -1,0 +1,29 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: melanintruth-ai/infrastructure/docker/api.Dockerfile
+    environment:
+      APP_ENV: test
+      DATABASE_URL: postgresql+psycopg://melanintruth:change-me@postgres:5432/melanintruth
+      JWT_SECRET: test-only-change-me
+      CORS_ALLOWED_ORIGINS: http://localhost:3000,http://localhost:3001
+      PYTHONPATH: /app/melanintruth-ai/services/api
+    ports: ["8000:8000"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: >-
+      bash -lc "cd /app/melanintruth-ai/services/api && alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: melanintruth
+      POSTGRES_PASSWORD: change-me
+      POSTGRES_DB: melanintruth
+    ports: ["5432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U melanintruth -d melanintruth"]
+      interval: 5s
+      timeout: 5s
+      retries: 10

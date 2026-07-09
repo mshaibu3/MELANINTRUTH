@@ -1,0 +1,4 @@
+apiVersion: v2
+name: melanintruth-ai
+description: Helm skeleton for MelaninTruth AI
+version: 0.1.0

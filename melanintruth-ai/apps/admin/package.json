@@ -1,0 +1,1 @@
+{"scripts":{"test":"tsc --noEmit"},"dependencies":{"typescript":"latest","next":"latest","react":"latest","react-dom":"latest"},"devDependencies":{}}

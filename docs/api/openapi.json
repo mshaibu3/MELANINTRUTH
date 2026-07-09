@@ -1,0 +1,92 @@
+{
+  "components": {
+    "schemas": {
+      "AnalysisJobResponse": {
+        "required": [
+          "confidence_score",
+          "uncertainty_score",
+          "lighting_quality_score",
+          "capture_quality_score",
+          "limitation_warning"
+        ],
+        "type": "object"
+      },
+      "ErrorDetail": {
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "details": {
+            "type": "object"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "details"
+        ],
+        "type": "object"
+      },
+      "ErrorEnvelope": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorDetail"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "type": "object"
+      },
+      "RenderResponse": {
+        "required": [
+          "confidence_score",
+          "uncertainty_score",
+          "safety_gate_result",
+          "render_status",
+          "public_render_available",
+          "limitation_warning"
+        ],
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "BearerAuth": {
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "title": "MelaninTruth AI API",
+    "version": "0.3.7"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/analysis/jobs": {},
+    "/analysis/jobs/{job_id}": {},
+    "/auth/account-deletion-request": {},
+    "/auth/login": {},
+    "/auth/logout": {},
+    "/auth/refresh": {},
+    "/auth/register": {},
+    "/auth/sessions": {},
+    "/consent": {},
+    "/governance/audit": {},
+    "/governance/bias-reports": {},
+    "/governance/dataset-versions": {},
+    "/governance/incidents": {},
+    "/governance/model-versions": {},
+    "/health": {},
+    "/images/upload-complete": {},
+    "/images/upload-request": {},
+    "/images/{image_id}": {},
+    "/privacy/delete": {},
+    "/privacy/export": {},
+    "/renders": {},
+    "/renders/{render_id}": {}
+  }
+}

@@ -299,7 +299,7 @@ class _SignInScreenState extends ConsumerState<_SignInScreen> {
         ),
         const SizedBox(height: 8),
         const Text(
-          'Session credentials are held in memory only in this Phase 4 build and are never written to logs.',
+          'Access credentials remain in memory. Refresh-session material is stored with platform secure storage and is never written to logs.',
         ),
         const SizedBox(height: 20),
         TextField(
@@ -448,7 +448,7 @@ class _CaptureScreen extends ConsumerWidget {
         const _StatusPanel(
           icon: Icons.science_outlined,
           message:
-              'Phase 4 preview controls simulate camera telemetry. They do not fabricate or upload image bytes.',
+              'The sliders provide capture guidance. Production analysis requests native camera permission and uploads only the selected image bytes.',
         ),
         const SizedBox(height: 18),
         Text('Lighting level: ${(state.brightness * 100).round()}%'),

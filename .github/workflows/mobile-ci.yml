@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   flutter:
@@ -27,19 +27,8 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get
-      - name: Canonicalize Dart formatting
-        run: dart format lib test
-      - name: Commit canonical Dart formatting
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        working-directory: .
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add melanintruth-ai/apps/mobile/lib melanintruth-ai/apps/mobile/test
-          if ! git diff --cached --quiet; then
-            git commit -m "Format Phase 4 Flutter source"
-            git push origin HEAD:main
-          fi
+      - name: Check Dart formatting
+        run: dart format --output=none --set-exit-if-changed lib test
       - name: Analyze Flutter source
         id: analyze
         continue-on-error: true

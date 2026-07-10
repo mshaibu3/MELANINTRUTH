@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   flutter:
@@ -30,9 +30,10 @@ jobs:
       - name: Check Dart formatting
         run: dart format --output=none lib test
       - name: Analyze Flutter source
+        id: analyze
+        continue-on-error: true
         run: |
           mkdir -p artifacts
-          set +e
           flutter analyze > artifacts/flutter-analyze.txt 2>&1
           status=$?
           cat artifacts/flutter-analyze.txt
@@ -44,6 +45,22 @@ jobs:
           name: mobile-analyzer-diagnostics
           path: melanintruth-ai/apps/mobile/artifacts/flutter-analyze.txt
           if-no-files-found: error
+      - name: Persist analyzer report for repair
+        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        working-directory: .
+        run: |
+          mkdir -p docs/ci
+          cp melanintruth-ai/apps/mobile/artifacts/flutter-analyze.txt docs/ci/mobile-analyzer.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/ci/mobile-analyzer.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Capture Flutter analyzer diagnostics"
+            git push origin HEAD:main
+          fi
+      - name: Enforce Flutter analyzer
+        if: steps.analyze.outcome == 'failure'
+        run: exit 1
       - run: flutter test --coverage
       - uses: actions/upload-artifact@v4
         if: always()

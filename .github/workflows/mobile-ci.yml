@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   flutter:
@@ -28,7 +28,7 @@ jobs:
           cache: true
       - run: flutter pub get
       - name: Check Dart formatting
-        run: dart format --output=none lib test
+        run: dart format --output=none --set-exit-if-changed lib test
       - name: Analyze Flutter source
         id: analyze
         continue-on-error: true
@@ -61,22 +61,6 @@ jobs:
           name: mobile-coverage
           path: melanintruth-ai/apps/mobile/coverage/lcov.info
           if-no-files-found: warn
-      - name: Persist mobile reports for repair
-        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
-        working-directory: .
-        run: |
-          mkdir -p docs/ci
-          cp melanintruth-ai/apps/mobile/artifacts/flutter-analyze.txt docs/ci/mobile-analyzer.txt
-          if [ -f melanintruth-ai/apps/mobile/artifacts/flutter-test.txt ]; then
-            cp melanintruth-ai/apps/mobile/artifacts/flutter-test.txt docs/ci/mobile-test.txt
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/ci/mobile-analyzer.txt docs/ci/mobile-test.txt 2>/dev/null || true
-          if ! git diff --cached --quiet; then
-            git commit -m "Capture Flutter mobile diagnostics"
-            git push origin HEAD:main
-          fi
       - name: Enforce mobile verification
         if: always()
         run: |

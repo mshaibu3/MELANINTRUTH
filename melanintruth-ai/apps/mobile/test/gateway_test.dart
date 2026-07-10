@@ -9,6 +9,7 @@ import 'package:melanintruth_mobile/src/gateway.dart';
 import 'package:melanintruth_mobile/src/models.dart';
 import 'package:melanintruth_mobile/src/retry.dart';
 import 'package:melanintruth_mobile/src/session_store.dart';
+import 'package:melanintruth_mobile/src/telemetry.dart';
 
 class _FakeCaptureSource implements CaptureSource {
   _FakeCaptureSource(this._capturedImage);
@@ -45,6 +46,7 @@ void main() {
     );
     var uploadAttempts = 0;
     final paths = <String>[];
+    final telemetry = MemoryTelemetrySink();
 
     final client = MockClient((request) async {
       paths.add('${request.method} ${request.url.path}');
@@ -98,6 +100,7 @@ void main() {
         maxAttempts: 3,
         delay: (_) async {},
       ),
+      telemetry: telemetry,
     );
 
     final result = await gateway.analyse(
@@ -116,6 +119,20 @@ void main() {
       'POST /images/upload-complete',
       'POST /analysis/jobs',
     ]);
+    expect(
+      telemetry.records.map((record) => record.event),
+      [
+        TelemetryEvent.captureRequested,
+        TelemetryEvent.uploadAttempted,
+        TelemetryEvent.uploadAttempted,
+        TelemetryEvent.uploadCompleted,
+        TelemetryEvent.analysisCompleted,
+      ],
+    );
+    expect(
+      telemetry.records.expand((record) => record.fields.keys),
+      everyElement(isIn(const ['attempt', 'outcome', 'status_class', 'stage'])),
+    );
   });
 
   test('rotates a stored refresh session and revalidates consent', () async {
@@ -188,9 +205,12 @@ void main() {
 
   test('deletion clears secure refresh-session material', () async {
     final store = MemorySessionStore();
+    final telemetry = MemoryTelemetrySink();
     await store.save(
       const StoredSession(
-          sessionId: 'session-1', refreshToken: 'refresh-token'),
+        sessionId: 'session-1',
+        refreshToken: 'refresh-token',
+      ),
     );
     final gateway = HttpMelaninTruthGateway(
       baseUrl: 'https://api.example.com',
@@ -205,10 +225,15 @@ void main() {
         ),
       ),
       sessionStore: store,
+      telemetry: telemetry,
     );
 
     await gateway.requestDataDeletion(session: _session);
     expect(await store.read(), isNull);
+    expect(
+      telemetry.records.single.event,
+      TelemetryEvent.privacyDeletionCompleted,
+    );
   });
 
   test('rejects non-HTTPS production API URLs', () {

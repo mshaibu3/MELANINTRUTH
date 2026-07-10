@@ -4,7 +4,14 @@ import 'package:melanintruth_mobile/main.dart';
 
 Future<void> _tapKey(WidgetTester tester, String key) async {
   final finder = find.byKey(Key(key));
-  await tester.ensureVisible(finder);
+  if (finder.evaluate().isEmpty) {
+    await tester.scrollUntilVisible(
+      finder,
+      240,
+      scrollable: find.byType(Scrollable).first,
+    );
+  }
+  expect(finder, findsOneWidget, reason: 'Expected keyed control: $key');
   await tester.tap(finder);
   await tester.pumpAndSettle();
 }
@@ -25,6 +32,7 @@ void main() {
   testWidgets('completes consent-first governed analysis flow',
       (tester) async {
     await tester.pumpWidget(const MelaninTruthApp());
+    await tester.pumpAndSettle();
 
     await _tapKey(tester, 'welcome_continue');
 

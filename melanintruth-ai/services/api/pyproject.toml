@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "melanintruth-api"
 version = "0.1.0"
@@ -19,10 +23,17 @@ dependencies = [
   "pillow==11.0.0",
   "scikit-image==0.25.0",
 ]
+
 [project.optional-dependencies]
 dev = ["pytest==8.3.4", "pytest-asyncio==0.25.0", "ruff", "mypy", "bandit", "pip-audit"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+
 [tool.ruff]
 line-length = 100
+
 [tool.mypy]
 python_version = "3.11"
 strict = true

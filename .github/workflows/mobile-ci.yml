@@ -29,7 +29,21 @@ jobs:
       - run: flutter pub get
       - name: Check Dart formatting
         run: dart format --output=none lib test
-      - run: flutter analyze
+      - name: Analyze Flutter source
+        run: |
+          mkdir -p artifacts
+          set +e
+          flutter analyze > artifacts/flutter-analyze.txt 2>&1
+          status=$?
+          cat artifacts/flutter-analyze.txt
+          exit $status
+      - name: Upload Flutter analyzer diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-analyzer-diagnostics
+          path: melanintruth-ai/apps/mobile/artifacts/flutter-analyze.txt
+          if-no-files-found: error
       - run: flutter test --coverage
       - uses: actions/upload-artifact@v4
         if: always()

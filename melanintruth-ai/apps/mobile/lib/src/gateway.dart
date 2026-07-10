@@ -3,7 +3,6 @@ import 'dart:math' as math;
 
 import 'package:http/http.dart' as http;
 
-import 'constants.dart';
 import 'models.dart';
 
 abstract interface class MelaninTruthGateway {

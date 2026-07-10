@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import Any, Callable
 
 from app.api.phase3_app import ApiApplication

@@ -93,6 +93,11 @@ def create_fastapi_app(api: ApiApplication | None = None) -> Any:
             )
         return credentials.credentials
 
+    def admin_bearer(token: str = Depends(bearer)) -> str:
+        """Reject non-admin callers before FastAPI validates governance request bodies."""
+        state.require_admin(token)
+        return token
+
     def unwrap(result: tuple[int, dict[str, Any]]) -> dict[str, Any]:
         status, body = result
         if status >= 400:
@@ -201,7 +206,7 @@ def create_fastapi_app(api: ApiApplication | None = None) -> Any:
 
     @app.post("/governance/model-versions", tags=["governance"])
     def create_model_version(
-        payload: ModelVersionRequest, token: str = Depends(bearer)
+        payload: ModelVersionRequest, token: str = Depends(admin_bearer)
     ) -> dict[str, Any]:
         return unwrap(state.governance_model_create(token, _payload(payload)))
 

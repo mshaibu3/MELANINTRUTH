@@ -28,7 +28,7 @@ jobs:
           cache: true
       - run: flutter pub get
       - name: Check Dart formatting
-        run: dart format --output=none --set-exit-if-changed lib test
+        run: dart format --output=none --set-exit-if-changed lib test integration_test
       - name: Analyze Flutter source
         id: analyze
         continue-on-error: true

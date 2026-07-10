@@ -38,33 +38,47 @@ jobs:
           status=$?
           cat artifacts/flutter-analyze.txt
           exit $status
-      - name: Upload Flutter analyzer diagnostics
+      - name: Run Flutter tests
+        id: tests
+        if: steps.analyze.outcome == 'success'
+        continue-on-error: true
+        run: |
+          flutter test --coverage > artifacts/flutter-test.txt 2>&1
+          status=$?
+          cat artifacts/flutter-test.txt
+          exit $status
+      - name: Upload mobile diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: mobile-analyzer-diagnostics
-          path: melanintruth-ai/apps/mobile/artifacts/flutter-analyze.txt
+          name: mobile-diagnostics
+          path: melanintruth-ai/apps/mobile/artifacts/*.txt
           if-no-files-found: error
-      - name: Persist analyzer report for repair
+      - name: Upload mobile coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-coverage
+          path: melanintruth-ai/apps/mobile/coverage/lcov.info
+          if-no-files-found: warn
+      - name: Persist mobile reports for repair
         if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
         working-directory: .
         run: |
           mkdir -p docs/ci
           cp melanintruth-ai/apps/mobile/artifacts/flutter-analyze.txt docs/ci/mobile-analyzer.txt
+          if [ -f melanintruth-ai/apps/mobile/artifacts/flutter-test.txt ]; then
+            cp melanintruth-ai/apps/mobile/artifacts/flutter-test.txt docs/ci/mobile-test.txt
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/ci/mobile-analyzer.txt
+          git add docs/ci/mobile-analyzer.txt docs/ci/mobile-test.txt 2>/dev/null || true
           if ! git diff --cached --quiet; then
-            git commit -m "Capture Flutter analyzer diagnostics"
+            git commit -m "Capture Flutter mobile diagnostics"
             git push origin HEAD:main
           fi
-      - name: Enforce Flutter analyzer
-        if: steps.analyze.outcome == 'failure'
-        run: exit 1
-      - run: flutter test --coverage
-      - uses: actions/upload-artifact@v4
+      - name: Enforce mobile verification
         if: always()
-        with:
-          name: mobile-coverage
-          path: melanintruth-ai/apps/mobile/coverage/lcov.info
-          if-no-files-found: warn
+        run: |
+          test "${{ steps.analyze.outcome }}" = "success"
+          test "${{ steps.tests.outcome }}" = "success"

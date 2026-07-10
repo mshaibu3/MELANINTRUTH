@@ -26,7 +26,7 @@ Phase 3.5 acceptance requires:
 
 ## Phase 3.8 acceptance criteria
 
-* CI must run `make api-install`, `make api-migrate`, `make migration-verify`, `make api-test`, `make api-openapi`, `make openapi-check`, and `make test-postgres-real` against PostgreSQL.
+* CI must run `make api-install`, `make api-migrate`, `make migration-verify`, `make api-test`, `make api-openapi`, `make openapi-check`, `git diff --exit-code docs/api/openapi.json`, and `make test-postgres-real` against PostgreSQL.
 * `REQUIRE_FASTAPI_TESTS=1` converts missing FastAPI dependencies into failures, preventing accidental skipped API coverage in CI.
 * SQLModel repositories provide read and write helpers for core aggregates and return redacted image/session views.
 * Production startup must not fall back to memory or SQLite repositories.
@@ -37,8 +37,23 @@ Phase 3.5 acceptance requires:
 * `REQUIRE_FASTAPI_TESTS=1 make api-test` must fail in constrained environments without FastAPI and pass without skips in dependency-enabled CI.
 * Backend production readiness is not accepted until dependency installation, Alembic migration, migration verification, OpenAPI drift protection, and PostgreSQL-backed tests pass in CI.
 
-## Phase 3.10 backend unlock criteria
+## Phase 3.10 backend unlock criteria — satisfied
 
-* The backend is **not accepted as dependency-enabled verified** until `.github/workflows/api-integration.yml` passes with a PostgreSQL service.
-* The passing run must prove `make api-install`, `make api-migrate`, `make migration-verify`, `REQUIRE_FASTAPI_TESTS=1 make api-test`, `make api-openapi`, `make openapi-check`, `git diff --exit-code docs/api/openapi.json`, and `make test-postgres-real`.
-* Phase 4 mobile remains blocked until the workflow status, UTC timestamp, commit SHA, and no-skip FastAPI/PostgreSQL/OpenAPI proof are documented.
+* `.github/workflows/api-integration.yml` passed with PostgreSQL on 2026-07-10 UTC as run `29109587040` for commit `6458f1591fbaedd46316b2468d6b18e49ec4557f`.
+* The run proved dependency installation, Alembic migration, migration verification, no-skip FastAPI coverage, OpenAPI generation and validation, zero OpenAPI drift, and PostgreSQL-compatible repository verification.
+* The general `ci` workflow also passed as run `29109587214` for the same commit.
+
+## Phase 4 mobile acceptance criteria
+
+Phase 4 is accepted only when all of the following are true:
+
+* `.github/workflows/mobile-ci.yml` passes `flutter pub get`, `flutter analyze`, and all Flutter tests without skips.
+* The first-run flow displays the exact scientific limitation before capture or analysis.
+* Image-processing and cloud-processing consent are required and independently represented; model-improvement consent remains optional and off by default.
+* No screen or gateway path claims exact biological melanin measurement, beauty enhancement, whitening, lightening, smoothing, reshaping, or identity alteration.
+* Session credentials remain memory-only in the Phase 4 foundation and are never logged.
+* Capture-quality logic rejects underexposed, overexposed, and unstable conditions before analysis.
+* Results include confidence, uncertainty, lighting quality, capture quality, explanation, limitation language, and explicit no-filter status.
+* Privacy controls expose data-export and data-deletion requests, and deletion clears the local session and consent state.
+* The production HTTP gateway must not fabricate image uploads. If secure camera-byte transport is not configured, analysis must fail clearly rather than submit synthetic image data.
+* Widget and controller tests cover the consent-first happy path, unsafe capture rejection, optional model-improvement consent, and deletion-state clearing.

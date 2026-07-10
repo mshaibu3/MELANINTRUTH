@@ -113,4 +113,21 @@ class SafetyGate:
 
 
 def sample_image(value: int = 128, size: int = 16) -> Image:
-    return [[(value, value, value) for _ in range(size)] for _ in range(size)]
+    """Create a deterministic, textured baseline image for quality-gate tests.
+
+    The checkerboard variation preserves visible local detail without altering the
+    requested mean tone, while extreme values still correctly trigger exposure
+    rejection.
+    """
+    delta = 8 if 8 <= value <= 247 else 0
+    return [
+        [
+            (
+                max(0, min(255, value + (delta if (x + y) % 2 == 0 else -delta))),
+                max(0, min(255, value + (delta if (x + y) % 2 == 0 else -delta))),
+                max(0, min(255, value + (delta if (x + y) % 2 == 0 else -delta))),
+            )
+            for x in range(size)
+        ]
+        for y in range(size)
+    ]

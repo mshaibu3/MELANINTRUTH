@@ -12,7 +12,7 @@ const _allowedFields = <String>{'attempt', 'outcome', 'status_class', 'stage'};
 
 class TelemetryRecord {
   TelemetryRecord(this.event, [Map<String, Object> fields = const {}])
-    : fields = Map.unmodifiable(fields) {
+      : fields = Map.unmodifiable(fields) {
     for (final entry in fields.entries) {
       if (!_allowedFields.contains(entry.key)) {
         throw ArgumentError.value(

@@ -135,15 +135,14 @@ class HttpMelaninTruthGateway implements MelaninTruthGateway {
     SessionStore? sessionStore,
     RetryPolicy? uploadRetryPolicy,
     TelemetrySink? telemetry,
-  }) : baseUrl = baseUrl.replaceFirst(RegExp(r'/$'), ''),
-       _client = client ?? http.Client(),
-       _captureSource = captureSource ?? ImagePickerCaptureSource(),
-       _sessionStore = sessionStore ?? SecureSessionStore(),
-       _uploadRetryPolicy = uploadRetryPolicy ?? RetryPolicy(),
-       _telemetry = telemetry ?? const NoopTelemetrySink() {
+  })  : baseUrl = baseUrl.replaceFirst(RegExp(r'/$'), ''),
+        _client = client ?? http.Client(),
+        _captureSource = captureSource ?? ImagePickerCaptureSource(),
+        _sessionStore = sessionStore ?? SecureSessionStore(),
+        _uploadRetryPolicy = uploadRetryPolicy ?? RetryPolicy(),
+        _telemetry = telemetry ?? const NoopTelemetrySink() {
     final uri = Uri.parse(this.baseUrl);
-    final localDevelopmentHost =
-        uri.host == 'localhost' ||
+    final localDevelopmentHost = uri.host == 'localhost' ||
         uri.host == '127.0.0.1' ||
         uri.host == '10.0.2.2';
     if (uri.scheme != 'https' && !localDevelopmentHost) {
@@ -161,9 +160,9 @@ class HttpMelaninTruthGateway implements MelaninTruthGateway {
   final TelemetrySink _telemetry;
 
   Map<String, String> _headers([AuthSession? session]) => {
-    'Content-Type': 'application/json',
-    if (session != null) 'Authorization': 'Bearer ${session.accessToken}',
-  };
+        'Content-Type': 'application/json',
+        if (session != null) 'Authorization': 'Bearer ${session.accessToken}',
+      };
 
   Map<String, dynamic> _decode(http.Response response) {
     final decoded = jsonDecode(response.body);
@@ -181,9 +180,8 @@ class HttpMelaninTruthGateway implements MelaninTruthGateway {
     try {
       final body = _decode(response);
       final error = body['error'];
-      message = error is Map<String, dynamic>
-          ? error['message']?.toString()
-          : null;
+      message =
+          error is Map<String, dynamic> ? error['message']?.toString() : null;
     } on Object {
       message = null;
     }
@@ -398,9 +396,8 @@ class HttpMelaninTruthGateway implements MelaninTruthGateway {
 
   AnalysisResult _analysisResult(Map<String, dynamic> body) {
     final result = body['result'];
-    final resultMap = result is Map<String, dynamic>
-        ? result
-        : <String, dynamic>{};
+    final resultMap =
+        result is Map<String, dynamic> ? result : <String, dynamic>{};
     double score(String key, [double fallback = 0]) {
       final value = body[key];
       return value is num ? value.toDouble() : fallback;
@@ -411,11 +408,9 @@ class HttpMelaninTruthGateway implements MelaninTruthGateway {
       uncertainty: score('uncertainty_score'),
       lightingQuality: score('lighting_quality_score'),
       captureQuality: score('capture_quality_score'),
-      explanation:
-          resultMap['explanation']?.toString() ??
+      explanation: resultMap['explanation']?.toString() ??
           'The governed service completed visible-appearance analysis without beautification or identity alteration.',
-      limitationWarning:
-          body['limitation_warning']?.toString() ??
+      limitationWarning: body['limitation_warning']?.toString() ??
           'This result is an estimate under standardised lighting assumptions.',
     );
   }

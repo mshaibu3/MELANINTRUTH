@@ -249,9 +249,8 @@ class _ConsentScreen extends ConsumerWidget {
         const SizedBox(height: 24),
         FilledButton(
           key: const Key('consent_continue'),
-          onPressed: state.requiredConsentGranted
-              ? controller.continueToSignIn
-              : null,
+          onPressed:
+              state.requiredConsentGranted ? controller.continueToSignIn : null,
           child: const Text('Continue to sign in'),
         ),
       ],
@@ -315,9 +314,9 @@ class _SignInScreenState extends ConsumerState<_SignInScreen> {
           onPressed: state.loading
               ? null
               : () => controller.signIn(
-                  _emailController.text,
-                  _passwordController.text,
-                ),
+                    _emailController.text,
+                    _passwordController.text,
+                  ),
           icon: state.loading
               ? const SizedBox.square(
                   dimension: 18,
@@ -471,12 +470,12 @@ class _QualityScreen extends ConsumerWidget {
   const _QualityScreen();
 
   String _qualityLabel(CaptureQuality quality) => switch (quality) {
-    CaptureQuality.acceptable => 'Acceptable',
-    CaptureQuality.tooDark => 'Too dark',
-    CaptureQuality.tooBright => 'Too bright',
-    CaptureQuality.unstable => 'Unstable',
-    CaptureQuality.unknown => 'Unknown',
-  };
+        CaptureQuality.acceptable => 'Acceptable',
+        CaptureQuality.tooDark => 'Too dark',
+        CaptureQuality.tooBright => 'Too bright',
+        CaptureQuality.unstable => 'Unstable',
+        CaptureQuality.unknown => 'Unknown',
+      };
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

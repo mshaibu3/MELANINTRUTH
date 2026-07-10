@@ -194,10 +194,13 @@ class ApiApplication:
             self._persist_user_related("render", job, user.tenant_id, user.id)
             status_code = 202 if job.status == RenderStatus.REJECTED_BY_SAFETY_GATE else 201
             return status_code, self._render_response(job)
-        except ValidationError as exc:
+                except ValidationError as exc:
             return 422, structured_error("ANALYSIS_NOT_COMPLETED", str(exc))
         except AuthorizationError as exc:
-            return 403, structured_error("CONSENT_REQUIRED", str(exc))
+            msg = str(exc)
+            if "analysis" in msg.lower() or "not found" in msg.lower() or "completed" in msg.lower():
+                return 422, structured_error("ANALYSIS_NOT_COMPLETED", msg)
+            return 403, structured_error("CONSENT_REQUIRED", msg)
 
     def _render_response(self, job: Any) -> dict[str, Any]:
         public_render_available = job.status == RenderStatus.COMPLETED

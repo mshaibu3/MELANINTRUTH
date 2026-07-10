@@ -77,5 +77,16 @@ class AuthService:
         self.audit.record("auth.logout", "session", session.id, user_id, session.tenant_id, {})
 
     def request_account_deletion(self, user_id: str) -> None:
+        """Immediately disable processing while the deletion request is fulfilled.
+
+        Sensitive image processing must stop as soon as deletion is requested. The
+        privacy deletion workflow may subsequently remove or redact retained records,
+        but the account and all active sessions are disabled here without delay.
+        """
         user = self.repo.users[user_id]
+        requested_at = now()
+        user.deleted_at = requested_at
+        for session in self.repo.sessions.values():
+            if session.user_id == user.id and session.revoked_at is None:
+                session.revoked_at = requested_at
         self.audit.record("privacy.account_deletion_requested", "user", user.id, user.id, user.tenant_id, {})

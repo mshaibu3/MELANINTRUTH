@@ -44,7 +44,7 @@ The schema rejects arbitrary fields and values, including access tokens, refresh
 3. an unsigned iOS release application;
 4. first-run scientific disclosure, disabled consent continuation, labelled controls, and Android tap-target guidance on an emulator.
 
-The existing backend `ci` and PostgreSQL `api-integration` gates remain mandatory.
+The existing backend `ci` and PostgreSQL `api-integration` gates remain mandatory. Canonical Dart formatting has been committed; Phase 6 requires all four workflows to pass on the same owner-authored head commit.
 
 ## Unresolved store-release evidence
 

@@ -439,7 +439,8 @@ class _CaptureScreen extends ConsumerWidget {
           style: Theme.of(context).textTheme.titleLarge,
         ),
         const SizedBox(height: 8),
-        const Text('• Use even indirect light; avoid direct sun and deep shade.'),
+        const Text(
+            '• Use even indirect light; avoid direct sun and deep shade.'),
         const Text('• Remove beauty filters and automatic skin smoothing.'),
         const Text('• Hold the device steady and keep the face centred.'),
         const Text('• Do not capture another person without their consent.'),
@@ -604,7 +605,8 @@ class _ResultScreen extends ConsumerWidget {
         const SizedBox(height: 16),
         const _StatusPanel(
           icon: Icons.no_photography_outlined,
-          message: 'No filter applied. Identity and skin texture are preserved.',
+          message:
+              'No filter applied. Identity and skin texture are preserved.',
         ),
         const SizedBox(height: 18),
         _ScoreRow(label: 'Confidence', value: result.confidence),
@@ -712,12 +714,14 @@ class _PrivacyScreen extends ConsumerWidget {
         const ListTile(
           leading: Icon(Icons.visibility_off_outlined),
           title: Text('No raw-image logging'),
-          subtitle: Text('Tokens, passwords, and raw image paths are excluded from logs.'),
+          subtitle: Text(
+              'Tokens, passwords, and raw image paths are excluded from logs.'),
         ),
         const ListTile(
           leading: Icon(Icons.model_training_outlined),
           title: Text('Separate training consent'),
-          subtitle: Text('Model-improvement consent is optional and off by default.'),
+          subtitle:
+              Text('Model-improvement consent is optional and off by default.'),
         ),
         const SizedBox(height: 18),
         FilledButton.icon(

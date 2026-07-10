@@ -49,7 +49,8 @@ class LocalPreviewGateway implements MelaninTruthGateway {
       throw const GatewayException('Enter a valid email address.');
     }
     if (password.length < 12) {
-      throw const GatewayException('Password must contain at least 12 characters.');
+      throw const GatewayException(
+          'Password must contain at least 12 characters.');
     }
     return const AuthSession(
       accessToken: 'memory-only-preview-token',
@@ -135,9 +136,8 @@ class HttpMelaninTruthGateway implements MelaninTruthGateway {
     }
     final body = _decode(response);
     final error = body['error'];
-    final message = error is Map<String, dynamic>
-        ? error['message']?.toString()
-        : null;
+    final message =
+        error is Map<String, dynamic> ? error['message']?.toString() : null;
     throw GatewayException(message ?? 'The API request failed.');
   }
 

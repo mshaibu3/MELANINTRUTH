@@ -29,8 +29,7 @@ void main() {
     expect(find.textContaining('never whitens'), findsOneWidget);
   });
 
-  testWidgets('completes consent-first governed analysis flow',
-      (tester) async {
+  testWidgets('completes consent-first governed analysis flow', (tester) async {
     await tester.binding.setSurfaceSize(const Size(900, 1400));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 

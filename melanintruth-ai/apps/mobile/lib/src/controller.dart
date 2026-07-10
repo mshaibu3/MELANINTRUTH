@@ -138,7 +138,7 @@ class MobileController extends Notifier<MobileState> {
 
     final lightingQuality =
         (1 - ((brightness - 0.55).abs() / 0.55)).clamp(0.0, 1.0).toDouble();
-    final captureQuality = math.min(lightingQuality, stability);
+    final captureQuality = math.min(lightingQuality, stability).toDouble();
     final assessment = CaptureAssessment(
       quality: quality,
       brightness: brightness,

@@ -3,29 +3,6 @@
 ✅ /home/runner/work/MELANINTRUTH/MELANINTRUTH/melanintruth-ai/apps/mobile/test/controller_test.dart: keeps model-improvement consent optional
 ✅ /home/runner/work/MELANINTRUTH/MELANINTRUTH/melanintruth-ai/apps/mobile/test/controller_test.dart: deletion request clears the local session
 ✅ /home/runner/work/MELANINTRUTH/MELANINTRUTH/melanintruth-ai/apps/mobile/test/widget_test.dart: renders the safety promise and scientific limitation
-::group::❌ /home/runner/work/MELANINTRUTH/MELANINTRUTH/melanintruth-ai/apps/mobile/test/widget_test.dart: completes consent-first governed analysis flow (failed)
-══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
-The following StateError was thrown running a test:
-Bad state: No element
+✅ /home/runner/work/MELANINTRUTH/MELANINTRUTH/melanintruth-ai/apps/mobile/test/widget_test.dart: completes consent-first governed analysis flow
 
-When the exception was thrown, this was the stack:
-#0      Iterable.single (dart:core/iterable.dart:694:25)
-#1      WidgetController.widget (package:flutter_test/src/controller.dart:828:30)
-#2      main.<anonymous closure> (file:///home/runner/work/MELANINTRUTH/MELANINTRUTH/melanintruth-ai/apps/mobile/test/widget_test.dart:39:37)
-<asynchronous suspension>
-#3      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
-<asynchronous suspension>
-#4      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1952:5)
-<asynchronous suspension>
-<asynchronous suspension>
-(elided one frame from package:stack_trace)
-
-The test description was:
-  completes consent-first governed analysis flow
-════════════════════════════════════════════════════════════════════════════════════════════════════
-Test failed. See exception logs above.
-The test description was: completes consent-first governed analysis flow
-
-::endgroup::
-
-::error::4 tests passed, 1 failed.
+🎉 5 tests passed.

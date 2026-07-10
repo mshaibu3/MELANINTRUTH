@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 
 typedef DelayFunction = Future<void> Function(Duration duration);
+typedef RetryAttemptCallback = void Function(int attempt);
 
 class RetryPolicy {
   RetryPolicy({
@@ -17,10 +18,12 @@ class RetryPolicy {
   final DelayFunction _delay;
 
   Future<http.Response> execute(
-    Future<http.Response> Function() operation,
-  ) async {
+    Future<http.Response> Function() operation, {
+    RetryAttemptCallback? onAttempt,
+  }) async {
     Object? lastError;
     for (var attempt = 1; attempt <= maxAttempts; attempt++) {
+      onAttempt?.call(attempt);
       try {
         final response = await operation();
         if (!_isRetryableStatus(response.statusCode) ||

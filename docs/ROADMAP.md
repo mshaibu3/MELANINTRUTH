@@ -5,41 +5,41 @@
 * Phase 1 foundation scaffold.
 * Phase 2 backend hardening domain services for auth, consent, image upload, analysis lifecycle, rendering lifecycle, safety gate, audit, privacy, and governance.
 * Phase 3 API-facing integration with SQLite-backed repositories, structured API errors, OpenAPI contract metadata, persistent lifecycle records, and API integration tests.
-* Phase 3.5 FastAPI route factory, Pydantic schema definitions with dependency-light fallback, normalized SQL schema specs, postgres-ready Alembic migration, and OpenAPI tests.
+* Phase 3.5 FastAPI route factory, Pydantic schemas, normalized SQL schema specs, PostgreSQL-ready Alembic migrations, and OpenAPI tests.
+* Phase 3.6 dependency-enabled Docker/CI path, pinned API dependencies, FastAPI TestClient coverage, concrete SQLModel models, repository adapters, and OpenAPI export.
+* Phase 3.7 runtime repository verification and production fail-fast configuration.
+* Phase 3.8 no-skip FastAPI CI, SQL-backed reads, required-table migration verification, and tenant-safe redaction.
+* Phase 3.9 SQL-read completion and dependency-light regression coverage.
 
-## Next
+## Phase 3.10 — dependency-enabled CI proof gate completed
 
-* Run dependency installation in CI/build images once package index access is available.
-* Execute real FastAPI `TestClient` tests against the mounted app in CI.
-* Replace compatibility repository facade with fully normalized SQLModel repositories per aggregate.
-* Add PostgreSQL service-container tests with Alembic upgrade/downgrade execution.
+On 2026-07-10 UTC, commit `6458f1591fbaedd46316b2468d6b18e49ec4557f` passed both required GitHub Actions workflows:
 
-## Phase 3.6 completed
+* `api-integration` run `29109587040` completed successfully with dependency installation, Alembic migration, migration verification, no-skip FastAPI tests, OpenAPI generation, OpenAPI validation, zero OpenAPI drift, and PostgreSQL-compatible repository verification.
+* `ci` run `29109587214` completed successfully with installation, linting, backend tests, and AI safety tests.
 
-* Added dependency-enabled Docker/CI path, requirements file, FastAPI TestClient tests that run when dependencies are installed, concrete SQLModel ORM definitions, SQLModel repository adapter, OpenAPI export command, and PostgreSQL-ready workflow targets.
+This evidence unlocks Phase 4 mobile implementation.
 
-## Phase 3.7 — runtime verification
+## Phase 4 — consent-first mobile foundation
 
-* Pin dependency-enabled API versions for reproducible FastAPI, Pydantic, SQLModel, Alembic, HTTPX, and PostgreSQL test runs.
-* Wire runtime repository selection so production requires SQL dependencies and a configured database, while dependency-light tests remain explicit.
-* Expand FastAPI TestClient coverage across auth, consent, images, analysis, rendering, privacy, governance, and redaction controls.
-* Verify OpenAPI export from the live app and PostgreSQL migration flow in CI/Docker environments.
+Phase 4 delivers a testable Flutter application foundation with:
 
-## Phase 3.8 — CI evidence and SQL-backed reads
+* onboarding that states the exact scientific limitation before analysis;
+* separate required image/cloud consent and optional model-improvement consent;
+* memory-only session handling with no token, password, or raw-image logging;
+* guided capture telemetry that rejects underexposed, overexposed, and unstable conditions before analysis;
+* governed result presentation with confidence, uncertainty, capture quality, lighting quality, explanation, and no-filter language;
+* privacy export and deletion controls;
+* an API gateway abstraction for authenticated backend integration without fabricating image uploads when secure camera-byte transport is unavailable;
+* a dedicated `mobile-ci` workflow running Flutter dependency resolution, analysis, widget/controller tests, and coverage upload.
 
-* Enforce no-skip FastAPI tests in dependency-enabled CI with `REQUIRE_FASTAPI_TESTS=1`.
-* Add SQLModel read methods for core users, sessions, consent, images, analysis, renders, safety reports, audit, privacy, governance, and incident aggregates.
-* Add a required-table migration verification script and Alembic revision for runtime table names.
-* Preserve dependency-light local test paths while ensuring production fails fast on unsafe repository fallbacks.
+## Phase 4 follow-on increments
 
-## Phase 3.9 — SQL-read completion and blocked CI proof
+After the Phase 4 foundation passes mobile CI, the next increments are:
 
-* SQLModel runtime getters now prefer SQL reads when a SQL session is active, falling back to dependency-light maps only outside SQL mode.
-* Local dependency-light tests pass, including a fake SQL-session regression test proving SQL reads override stale memory maps.
-* Dependency-enabled CI proof remains required in an environment with package-index and Docker/PostgreSQL access.
-
-## Phase 3.10 — dependency-enabled CI proof gate
-
-* Local dependency-light verification remains green, including lint, backend, AI, API-service, migration smoke, OpenAPI, PostgreSQL-compatible contract tests, and OpenAPI export.
-* This container cannot trigger GitHub Actions (`gh` unavailable and no git remote), cannot install FastAPI dependencies (`403 Forbidden` package-index tunnel), and cannot run Docker/PostgreSQL (`docker` unavailable).
-* Phase 4 mobile remains blocked until `.github/workflows/api-integration.yml` passes in a dependency-enabled runner and the run evidence is recorded.
+* native camera integration and device-permission handling;
+* secure signed-upload transport for real camera bytes;
+* platform secure storage for refresh-session persistence;
+* accessibility verification on physical Android and iOS devices;
+* offline retry, network-loss recovery, and production API environment configuration;
+* device-level integration tests for capture, consent withdrawal, export, and deletion.

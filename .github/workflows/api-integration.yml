@@ -53,9 +53,12 @@ jobs:
           if-no-files-found: warn
       - run: make api-openapi
       - run: make openapi-check
-      - run: git diff --exit-code docs/api/openapi.json
-      - run: make test-postgres-real
-      - uses: actions/upload-artifact@v4
+      - name: Upload generated OpenAPI contract
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: openapi-json
           path: docs/api/openapi.json
+          if-no-files-found: error
+      - run: git diff --exit-code docs/api/openapi.json
+      - run: make test-postgres-real

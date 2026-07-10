@@ -23,10 +23,26 @@ class AuthSession {
   const AuthSession({
     required this.accessToken,
     required this.sessionId,
+    this.refreshToken = '',
   });
 
   final String accessToken;
   final String sessionId;
+  final String refreshToken;
+}
+
+class ConsentSnapshot {
+  const ConsentSnapshot({
+    required this.imageProcessing,
+    required this.cloudProcessing,
+    required this.modelImprovement,
+  });
+
+  final bool imageProcessing;
+  final bool cloudProcessing;
+  final bool modelImprovement;
+
+  bool get requiredConsentGranted => imageProcessing && cloudProcessing;
 }
 
 class CaptureAssessment {

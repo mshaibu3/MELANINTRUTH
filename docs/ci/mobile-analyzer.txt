@@ -1,5 +1,2 @@
 Analyzing mobile...                                             
-
-warning • Unused import: 'constants.dart'. Try removing the import directive • lib/src/gateway.dart:6:8 • unused_import
-
-1 issue found. (ran in 6.4s)
+No issues found! (ran in 7.2s)

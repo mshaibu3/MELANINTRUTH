@@ -80,11 +80,14 @@ class LocalPreviewGateway implements MelaninTruthGateway {
     if (!assessment.isAcceptable) {
       throw const GatewayException('Retake the capture before analysis.');
     }
-    final confidence = math.min(
-      0.95,
-      0.72 + (assessment.captureQuality * 0.15) +
-          (assessment.lightingQuality * 0.08),
-    );
+    final confidence = math
+        .min(
+          0.95,
+          0.72 +
+              (assessment.captureQuality * 0.15) +
+              (assessment.lightingQuality * 0.08),
+        )
+        .toDouble();
     return AnalysisResult(
       confidence: confidence,
       uncertainty: 1 - confidence,

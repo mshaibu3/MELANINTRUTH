@@ -23,7 +23,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_users_email ON records(json_extract(payload
 def connect_sqlite(path: str = ":memory:") -> sqlite3.Connection:
     if path != ":memory:":
         Path(path).parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(path)
+    conn = sqlite3.connect(path, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.executescript(SCHEMA)
     return conn

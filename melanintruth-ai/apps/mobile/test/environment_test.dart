@@ -12,10 +12,7 @@ void main() {
   test('release without an API URL fails closed', () {
     const environment = MobileEnvironment(apiBaseUrl: '', releaseMode: true);
 
-    expect(
-      environment.createGateway,
-      throwsA(isA<ConfigurationException>()),
-    );
+    expect(environment.createGateway, throwsA(isA<ConfigurationException>()));
   });
 
   test('release requires an HTTPS API URL', () {
@@ -24,10 +21,7 @@ void main() {
       releaseMode: true,
     );
 
-    expect(
-      environment.createGateway,
-      throwsA(isA<ConfigurationException>()),
-    );
+    expect(environment.createGateway, throwsA(isA<ConfigurationException>()));
   });
 
   test('release accepts a configured HTTPS gateway', () {

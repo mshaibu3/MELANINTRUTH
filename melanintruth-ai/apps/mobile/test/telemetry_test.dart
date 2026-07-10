@@ -3,10 +3,10 @@ import 'package:melanintruth_mobile/src/telemetry.dart';
 
 void main() {
   test('accepts only bounded non-identifying telemetry fields', () {
-    final record = TelemetryRecord(
-      TelemetryEvent.uploadAttempted,
-      const {'attempt': 2, 'stage': 'signed_put'},
-    );
+    final record = TelemetryRecord(TelemetryEvent.uploadAttempted, const {
+      'attempt': 2,
+      'stage': 'signed_put',
+    });
 
     expect(record.fields['attempt'], 2);
     expect(record.fields['stage'], 'signed_put');
@@ -21,10 +21,9 @@ void main() {
       'user_id',
     ]) {
       expect(
-        () => TelemetryRecord(
-          TelemetryEvent.analysisCompleted,
-          {field: 'secret'},
-        ),
+        () => TelemetryRecord(TelemetryEvent.analysisCompleted, {
+          field: 'secret',
+        }),
         throwsArgumentError,
       );
     }
@@ -32,10 +31,9 @@ void main() {
 
   test('rejects arbitrary URL-like telemetry values', () {
     expect(
-      () => TelemetryRecord(
-        TelemetryEvent.uploadCompleted,
-        const {'outcome': 'https://uploads.example.com/object'},
-      ),
+      () => TelemetryRecord(TelemetryEvent.uploadCompleted, const {
+        'outcome': 'https://uploads.example.com/object',
+      }),
       throwsArgumentError,
     );
   });
@@ -43,10 +41,9 @@ void main() {
   test('memory sink stores validated records only', () {
     final sink = MemoryTelemetrySink();
     sink.record(
-      TelemetryRecord(
-        TelemetryEvent.sessionRestoreCompleted,
-        const {'outcome': 'success'},
-      ),
+      TelemetryRecord(TelemetryEvent.sessionRestoreCompleted, const {
+        'outcome': 'success',
+      }),
     );
 
     expect(sink.records, hasLength(1));

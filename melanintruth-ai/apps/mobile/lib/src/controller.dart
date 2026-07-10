@@ -59,17 +59,11 @@ class MobileController extends Notifier<MobileState> {
   }
 
   void setImageProcessingConsent(bool value) {
-    state = state.copyWith(
-      imageProcessingConsent: value,
-      clearError: true,
-    );
+    state = state.copyWith(imageProcessingConsent: value, clearError: true);
   }
 
   void setCloudProcessingConsent(bool value) {
-    state = state.copyWith(
-      cloudProcessingConsent: value,
-      clearError: true,
-    );
+    state = state.copyWith(cloudProcessingConsent: value, clearError: true);
   }
 
   void setModelImprovementConsent(bool value) {
@@ -84,18 +78,11 @@ class MobileController extends Notifier<MobileState> {
       );
       return;
     }
-    state = state.copyWith(
-      stage: MobileStage.signIn,
-      clearError: true,
-    );
+    state = state.copyWith(stage: MobileStage.signIn, clearError: true);
   }
 
   Future<void> signIn(String email, String password) async {
-    state = state.copyWith(
-      loading: true,
-      clearError: true,
-      clearNotice: true,
-    );
+    state = state.copyWith(loading: true, clearError: true, clearNotice: true);
     try {
       final session = await _gateway.signIn(email: email, password: password);
       await _gateway.grantConsent(
@@ -168,8 +155,9 @@ class MobileController extends Notifier<MobileState> {
           'Capture conditions are suitable. The production gateway will request camera permission before upload.';
     }
 
-    final lightingQuality =
-        (1 - ((brightness - 0.55).abs() / 0.55)).clamp(0.0, 1.0).toDouble();
+    final lightingQuality = (1 - ((brightness - 0.55).abs() / 0.55))
+        .clamp(0.0, 1.0)
+        .toDouble();
     final captureQuality = math.min(lightingQuality, stability).toDouble();
     final assessment = CaptureAssessment(
       quality: quality,

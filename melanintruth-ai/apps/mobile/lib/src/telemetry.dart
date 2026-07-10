@@ -8,16 +8,11 @@ enum TelemetryEvent {
   privacyDeletionCompleted,
 }
 
-const _allowedFields = <String>{
-  'attempt',
-  'outcome',
-  'status_class',
-  'stage',
-};
+const _allowedFields = <String>{'attempt', 'outcome', 'status_class', 'stage'};
 
 class TelemetryRecord {
   TelemetryRecord(this.event, [Map<String, Object> fields = const {}])
-      : fields = Map.unmodifiable(fields) {
+    : fields = Map.unmodifiable(fields) {
     for (final entry in fields.entries) {
       if (!_allowedFields.contains(entry.key)) {
         throw ArgumentError.value(
@@ -29,7 +24,11 @@ class TelemetryRecord {
       final value = entry.value;
       if (value is int) {
         if (entry.key != 'attempt' || value < 1 || value > 10) {
-          throw ArgumentError.value(value, entry.key, 'Invalid telemetry value.');
+          throw ArgumentError.value(
+            value,
+            entry.key,
+            'Invalid telemetry value.',
+          );
         }
         continue;
       }

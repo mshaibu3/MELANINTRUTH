@@ -1,10 +1,7 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class StoredSession {
-  const StoredSession({
-    required this.sessionId,
-    required this.refreshToken,
-  });
+  const StoredSession({required this.sessionId, required this.refreshToken});
 
   final String sessionId;
   final String refreshToken;
@@ -18,7 +15,7 @@ abstract interface class SessionStore {
 
 class SecureSessionStore implements SessionStore {
   SecureSessionStore({FlutterSecureStorage? storage})
-      : _storage = storage ?? const FlutterSecureStorage();
+    : _storage = storage ?? const FlutterSecureStorage();
 
   static const _sessionIdKey = 'melanintruth.session_id';
   static const _refreshTokenKey = 'melanintruth.refresh_token';

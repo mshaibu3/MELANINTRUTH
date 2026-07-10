@@ -6,8 +6,9 @@ import 'package:melanintruth_mobile/main.dart';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('native app preserves disclosure and consent gates',
-      (tester) async {
+  testWidgets('native app preserves disclosure and consent gates', (
+    tester,
+  ) async {
     await tester.pumpWidget(const MelaninTruthApp());
     await tester.pumpAndSettle();
 

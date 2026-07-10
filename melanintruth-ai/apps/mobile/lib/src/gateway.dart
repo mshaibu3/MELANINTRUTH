@@ -10,10 +10,7 @@ import 'session_store.dart';
 import 'telemetry.dart';
 
 abstract interface class MelaninTruthGateway {
-  Future<AuthSession> signIn({
-    required String email,
-    required String password,
-  });
+  Future<AuthSession> signIn({required String email, required String password});
 
   Future<AuthSession?> restoreSession();
 
@@ -138,14 +135,15 @@ class HttpMelaninTruthGateway implements MelaninTruthGateway {
     SessionStore? sessionStore,
     RetryPolicy? uploadRetryPolicy,
     TelemetrySink? telemetry,
-  })  : baseUrl = baseUrl.replaceFirst(RegExp(r'/$'), ''),
-        _client = client ?? http.Client(),
-        _captureSource = captureSource ?? ImagePickerCaptureSource(),
-        _sessionStore = sessionStore ?? SecureSessionStore(),
-        _uploadRetryPolicy = uploadRetryPolicy ?? RetryPolicy(),
-        _telemetry = telemetry ?? const NoopTelemetrySink() {
+  }) : baseUrl = baseUrl.replaceFirst(RegExp(r'/$'), ''),
+       _client = client ?? http.Client(),
+       _captureSource = captureSource ?? ImagePickerCaptureSource(),
+       _sessionStore = sessionStore ?? SecureSessionStore(),
+       _uploadRetryPolicy = uploadRetryPolicy ?? RetryPolicy(),
+       _telemetry = telemetry ?? const NoopTelemetrySink() {
     final uri = Uri.parse(this.baseUrl);
-    final localDevelopmentHost = uri.host == 'localhost' ||
+    final localDevelopmentHost =
+        uri.host == 'localhost' ||
         uri.host == '127.0.0.1' ||
         uri.host == '10.0.2.2';
     if (uri.scheme != 'https' && !localDevelopmentHost) {
@@ -163,9 +161,9 @@ class HttpMelaninTruthGateway implements MelaninTruthGateway {
   final TelemetrySink _telemetry;
 
   Map<String, String> _headers([AuthSession? session]) => {
-        'Content-Type': 'application/json',
-        if (session != null) 'Authorization': 'Bearer ${session.accessToken}',
-      };
+    'Content-Type': 'application/json',
+    if (session != null) 'Authorization': 'Bearer ${session.accessToken}',
+  };
 
   Map<String, dynamic> _decode(http.Response response) {
     final decoded = jsonDecode(response.body);
@@ -183,8 +181,9 @@ class HttpMelaninTruthGateway implements MelaninTruthGateway {
     try {
       final body = _decode(response);
       final error = body['error'];
-      message =
-          error is Map<String, dynamic> ? error['message']?.toString() : null;
+      message = error is Map<String, dynamic>
+          ? error['message']?.toString()
+          : null;
     } on Object {
       message = null;
     }
@@ -229,10 +228,9 @@ class HttpMelaninTruthGateway implements MelaninTruthGateway {
     final session = _sessionFromBody(_decode(response));
     await _saveRefreshSession(session);
     _telemetry.record(
-      TelemetryRecord(
-        TelemetryEvent.sessionEstablished,
-        const {'outcome': 'success'},
-      ),
+      TelemetryRecord(TelemetryEvent.sessionEstablished, const {
+        'outcome': 'success',
+      }),
     );
     return session;
   }
@@ -256,19 +254,17 @@ class HttpMelaninTruthGateway implements MelaninTruthGateway {
       final session = _sessionFromBody(_decode(response));
       await _saveRefreshSession(session);
       _telemetry.record(
-        TelemetryRecord(
-          TelemetryEvent.sessionRestoreCompleted,
-          const {'outcome': 'success'},
-        ),
+        TelemetryRecord(TelemetryEvent.sessionRestoreCompleted, const {
+          'outcome': 'success',
+        }),
       );
       return session;
     } on Object {
       await _sessionStore.clear();
       _telemetry.record(
-        TelemetryRecord(
-          TelemetryEvent.sessionRestoreCompleted,
-          const {'outcome': 'failed'},
-        ),
+        TelemetryRecord(TelemetryEvent.sessionRestoreCompleted, const {
+          'outcome': 'failed',
+        }),
       );
       return null;
     }
@@ -333,10 +329,9 @@ class HttpMelaninTruthGateway implements MelaninTruthGateway {
     }
 
     _telemetry.record(
-      TelemetryRecord(
-        TelemetryEvent.captureRequested,
-        const {'stage': 'native_camera'},
-      ),
+      TelemetryRecord(TelemetryEvent.captureRequested, const {
+        'stage': 'native_camera',
+      }),
     );
     final capture = await _captureSource.capture();
     final metadata = {
@@ -368,19 +363,15 @@ class HttpMelaninTruthGateway implements MelaninTruthGateway {
       ),
       onAttempt: (attempt) {
         _telemetry.record(
-          TelemetryRecord(
-            TelemetryEvent.uploadAttempted,
-            {'attempt': attempt},
-          ),
+          TelemetryRecord(TelemetryEvent.uploadAttempted, {'attempt': attempt}),
         );
       },
     );
     _expectSuccess(uploadResponse);
     _telemetry.record(
-      TelemetryRecord(
-        TelemetryEvent.uploadCompleted,
-        const {'status_class': 'success'},
-      ),
+      TelemetryRecord(TelemetryEvent.uploadCompleted, const {
+        'status_class': 'success',
+      }),
     );
 
     final completeResponse = await _client.post(
@@ -398,18 +389,18 @@ class HttpMelaninTruthGateway implements MelaninTruthGateway {
     );
     _expectSuccess(analysisResponse);
     _telemetry.record(
-      TelemetryRecord(
-        TelemetryEvent.analysisCompleted,
-        const {'outcome': 'success'},
-      ),
+      TelemetryRecord(TelemetryEvent.analysisCompleted, const {
+        'outcome': 'success',
+      }),
     );
     return _analysisResult(_decode(analysisResponse));
   }
 
   AnalysisResult _analysisResult(Map<String, dynamic> body) {
     final result = body['result'];
-    final resultMap =
-        result is Map<String, dynamic> ? result : <String, dynamic>{};
+    final resultMap = result is Map<String, dynamic>
+        ? result
+        : <String, dynamic>{};
     double score(String key, [double fallback = 0]) {
       final value = body[key];
       return value is num ? value.toDouble() : fallback;
@@ -420,9 +411,11 @@ class HttpMelaninTruthGateway implements MelaninTruthGateway {
       uncertainty: score('uncertainty_score'),
       lightingQuality: score('lighting_quality_score'),
       captureQuality: score('capture_quality_score'),
-      explanation: resultMap['explanation']?.toString() ??
+      explanation:
+          resultMap['explanation']?.toString() ??
           'The governed service completed visible-appearance analysis without beautification or identity alteration.',
-      limitationWarning: body['limitation_warning']?.toString() ??
+      limitationWarning:
+          body['limitation_warning']?.toString() ??
           'This result is an estimate under standardised lighting assumptions.',
     );
   }
@@ -446,10 +439,9 @@ class HttpMelaninTruthGateway implements MelaninTruthGateway {
     _expectSuccess(response);
     await _sessionStore.clear();
     _telemetry.record(
-      TelemetryRecord(
-        TelemetryEvent.privacyDeletionCompleted,
-        const {'outcome': 'success'},
-      ),
+      TelemetryRecord(TelemetryEvent.privacyDeletionCompleted, const {
+        'outcome': 'success',
+      }),
     );
   }
 }

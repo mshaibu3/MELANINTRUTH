@@ -18,28 +18,37 @@ On 2026-07-10 UTC, commit `6458f1591fbaedd46316b2468d6b18e49ec4557f` passed both
 * `api-integration` run `29109587040` completed successfully with dependency installation, Alembic migration, migration verification, no-skip FastAPI tests, OpenAPI generation, OpenAPI validation, zero OpenAPI drift, and PostgreSQL-compatible repository verification.
 * `ci` run `29109587214` completed successfully with installation, linting, backend tests, and AI safety tests.
 
-This evidence unlocks Phase 4 mobile implementation.
+## Phase 4 — consent-first mobile foundation completed
 
-## Phase 4 — consent-first mobile foundation
-
-Phase 4 delivers a testable Flutter application foundation with:
+Commit `85339451e4c69c22818035373cae6b34d20a4ae1` passed `ci`, `api-integration`, and `mobile-ci` on 2026-07-10 UTC. Phase 4 delivered:
 
 * onboarding that states the exact scientific limitation before analysis;
 * separate required image/cloud consent and optional model-improvement consent;
-* memory-only session handling with no token, password, or raw-image logging;
+* memory-only access-session handling with no token, password, or raw-image logging;
 * guided capture telemetry that rejects underexposed, overexposed, and unstable conditions before analysis;
 * governed result presentation with confidence, uncertainty, capture quality, lighting quality, explanation, and no-filter language;
 * privacy export and deletion controls;
-* an API gateway abstraction for authenticated backend integration without fabricating image uploads when secure camera-byte transport is unavailable;
-* a dedicated `mobile-ci` workflow running Flutter dependency resolution, analysis, widget/controller tests, and coverage upload.
+* a dedicated strict `mobile-ci` workflow with Flutter analysis, tests, coverage, and read-only repository permissions.
 
-## Phase 4 follow-on increments
+## Phase 5 — mobile production integration
 
-After the Phase 4 foundation passes mobile CI, the next increments are:
+Phase 5 moves the Flutter foundation onto the real backend lifecycle while preserving the Phase 4 safety controls:
 
-* native camera integration and device-permission handling;
-* secure signed-upload transport for real camera bytes;
-* platform secure storage for refresh-session persistence;
-* accessibility verification on physical Android and iOS devices;
-* offline retry, network-loss recovery, and production API environment configuration;
-* device-level integration tests for capture, consent withdrawal, export, and deletion.
+* native platform camera capture through `image_picker`, with cancellation and permission denial surfaced safely;
+* JPEG/PNG and 10 MB limits plus local SHA-256 checksums;
+* authenticated signed-upload request, HTTPS binary PUT, upload completion, and analysis creation;
+* bounded retry only for the idempotent binary PUT;
+* platform secure storage for refresh token and session ID, with access tokens retained in memory;
+* refresh-token rotation, invalid-session clearing, and server-side consent revalidation before automatic restoration;
+* gateway and controller tests covering transport order, bytes, checksum headers, retry, secure-session rotation, consent restoration, and privacy deletion.
+
+## Phase 5 release boundary
+
+The Phase 5 pull request may be merged after `ci`, `api-integration`, and `mobile-ci` pass. It does not constitute an Android or iOS production release. Native release readiness additionally requires generated platform projects, camera usage descriptions, application signing, environment-specific API configuration, store entitlements, accessibility verification, and physical-device integration tests.
+
+## Phase 6 candidates
+
+* Generate and harden Android/iOS platform projects and permission manifests.
+* Add device-farm tests for camera permission denial, capture cancellation, offline upload recovery, consent withdrawal, export, and deletion.
+* Add short-lived signed-upload expiry handling and server-issued idempotency keys.
+* Add production observability that excludes tokens, raw images, checksums, and user-identifying paths.

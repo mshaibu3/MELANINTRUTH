@@ -33,6 +33,7 @@ def create_fastapi_app(api: ApiApplication | None = None) -> Any:
         from app.schemas.auth import LoginRequest, RefreshRequest, RegisterRequest
         from app.schemas.consent import ConsentGrantRequest
         from app.schemas.common import ErrorEnvelope
+        from app.schemas.governance import ModelVersionRequest
         from app.schemas.images import UploadRequest
         from app.schemas.renders import RenderRequest
     except ModuleNotFoundError:
@@ -199,8 +200,10 @@ def create_fastapi_app(api: ApiApplication | None = None) -> Any:
         return unwrap(state.governance_model_list(token))
 
     @app.post("/governance/model-versions", tags=["governance"])
-    def create_model_version(payload: dict[str, Any], token: str = Depends(bearer)) -> dict[str, Any]:
-        return unwrap(state.governance_model_create(token, payload))
+    def create_model_version(
+        payload: ModelVersionRequest, token: str = Depends(bearer)
+    ) -> dict[str, Any]:
+        return unwrap(state.governance_model_create(token, _payload(payload)))
 
     @app.get("/governance/bias-reports", tags=["governance"])
     def bias_reports(token: str = Depends(bearer)) -> dict[str, Any]:

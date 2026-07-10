@@ -8,7 +8,7 @@ A phone RGB image cannot perfectly measure biological melanin. The platform only
 
 ## Repository layout
 
-Core implementation lives under `melanintruth-ai/` with FastAPI services, ML safety baselines, Flutter/Next.js app skeletons, infrastructure, documentation, and tests.
+Core implementation lives under `melanintruth-ai/` with FastAPI services, ML safety baselines, Flutter/Next.js applications, infrastructure, documentation, and tests.
 
 ## Quick start
 
@@ -22,65 +22,54 @@ make test
 
 The only allowed transformation is scientifically constrained standardised-lighting rendering that preserves skin texture, pigmentation, scars, pores, vitiligo, hyperpigmentation, hypopigmentation, and identity.
 
-
 ## Phase 2 backend hardening
 
 Phase 2 adds tested domain services for authentication, consent enforcement, secure image upload, analysis jobs, authentic rendering jobs, no-beautification safety reports, audit redaction, privacy export/deletion, and governance model release controls. The executable Phase 2 core intentionally uses dependency-light Python services so safety and security logic can be tested even when external package installation is unavailable.
 
 ## Phase 3 API and persistence integration
 
-Phase 3 wires the tested Phase 2 services into a FastAPI-facing API application service with explicit route contracts, structured errors, SQLite-backed persistence for API integration tests, persistent audit/event records, privacy workflows, and OpenAPI contract generation. In this environment FastAPI is optional because the package is unavailable; the API logic remains executable through the same service layer and can be mounted by FastAPI when dependencies are installed.
+Phase 3 wires the tested Phase 2 services into a FastAPI-facing API application service with explicit route contracts, structured errors, SQLite-backed persistence for API integration tests, persistent audit/event records, privacy workflows, and OpenAPI contract generation.
 
-## Phase 3.5 FastAPI mounting
+## Phase 3.5–3.9 backend completion
 
-The API package now declares real FastAPI, Pydantic, SQLModel/SQLAlchemy, Alembic, PostgreSQL driver, JWT, password-hashing, HTTPX, and pytest dependencies in `melanintruth-ai/services/api/pyproject.toml`. Install with:
+The API package declares FastAPI, Pydantic, SQLModel/SQLAlchemy, Alembic, PostgreSQL, JWT, password-hashing, HTTPX, and pytest dependencies. Runtime repository selection is explicit: memory mode is test-only, SQLite supports constrained local work, and production requires a non-SQLite database with SQL repository mode.
+
+The dependency-enabled workflow installs pinned dependencies, applies Alembic migrations to PostgreSQL, verifies required tables, runs no-skip FastAPI tests, regenerates and validates OpenAPI, protects against OpenAPI drift, and runs PostgreSQL-compatible repository tests.
+
+## Phase 3.10 CI proof gate — completed
+
+On 2026-07-10 UTC, commit `6458f1591fbaedd46316b2468d6b18e49ec4557f` passed:
+
+* `api-integration` run `29109587040`;
+* `ci` run `29109587214`.
+
+This evidence cleared the backend gate for Phase 4 mobile work.
+
+## Phase 4 consent-first Flutter foundation
+
+The mobile application now provides:
+
+* scientific-limitation onboarding;
+* separate image/cloud consent and optional model-improvement consent;
+* memory-only authenticated sessions;
+* guided capture-quality telemetry and retake guidance;
+* governed results with confidence, uncertainty, lighting quality, capture quality, explanation, and explicit no-filter status;
+* privacy export and deletion controls;
+* a backend gateway abstraction that refuses to fabricate image uploads when secure camera-byte transport is unavailable;
+* Flutter widget/controller tests and a dedicated `mobile-ci` workflow.
+
+Run the mobile app in local preview mode:
 
 ```bash
-python -m pip install -e melanintruth-ai/services/api[dev]
-uvicorn app.main:app --app-dir melanintruth-ai/services/api
+cd melanintruth-ai/apps/mobile
+flutter pub get
+flutter run
 ```
 
-In constrained environments where package installation is blocked, dependency-light tests continue to exercise the same service boundary and OpenAPI contract fallback.
-
-## Phase 3.6 dependency-enabled verification
-
-Dependency-enabled API verification is available through Docker and requirements files:
+Configure an API base URL for authenticated backend operations:
 
 ```bash
-make api-docker-build
-make api-docker-test
-make postgres-up
-make api-migrate
-make test-postgres-real
-make postgres-down
+flutter run --dart-define=MELANINTRUTH_API_BASE_URL=https://api.example.com
 ```
 
-The local constrained path remains:
-
-```bash
-make lint make test make test-fastapi make openapi-check
-```
-
-## Runtime repository selection
-
-Application startup now builds `ApiApplication` with a repository selected from settings. SQLite URLs use the dependency-light repository; production SQL URLs require SQLModel dependencies and a DB session, and production refuses test JWT secrets.
-
-## Phase 3.7 runtime verification
-
-The dependency-enabled API path now uses pinned FastAPI/Pydantic/SQLModel dependencies from `melanintruth-ai/services/api/requirements.txt`. Run `make api-install`, then start the real app with `make api-run` (`PYTHONPATH=melanintruth-ai/services/api uvicorn app.main:app --reload`). When `DATABASE_URL` is configured and SQLModel dependencies are installed, runtime wiring selects the SQLModel repository path; production mode fails fast if the database URL or non-test `JWT_SECRET` are missing.
-
-For PostgreSQL verification, use `make postgres-up`, `make api-migrate`, `make test-postgres-real`, and `make postgres-down`, or run `make api-docker-test` to execute the API tests in the Docker Compose stack. `make api-openapi` exports the live FastAPI contract to `docs/api/openapi.json`.
-
-## Phase 3.8 CI evidence and SQL-backed reads
-
-The API integration workflow now runs with `REQUIRE_FASTAPI_TESTS=1`, so missing FastAPI dependencies become CI failures instead of skips. The workflow installs pinned dependencies, runs Alembic migrations against PostgreSQL, verifies migrated tables, executes FastAPI tests, regenerates OpenAPI, checks OpenAPI drift, and runs PostgreSQL-compatible repository tests.
-
-Runtime repository selection is explicit: `memory://` is allowed only for tests, SQLite is allowed for local dependency-light work, and production requires a non-SQLite `DATABASE_URL` plus SQL repository mode. Repository mode logging redacts credentials.
-
-## Phase 3.9 verification status
-
-Phase 3.9 keeps the dependency-light verification path passing and adds SQL-mode read preference for core getters. Dependency-enabled verification is still blocked in this execution environment: `make api-install` cannot reach the package index (`403 Forbidden` for FastAPI), `REQUIRE_FASTAPI_TESTS=1 make api-test` correctly fails when FastAPI is unavailable, and Docker/PostgreSQL commands cannot run because Docker is not installed. The committed CI workflow remains the required proof path before any production-readiness claim.
-
-## Phase 3.10 CI proof gate
-
-The dependency-enabled backend is not yet cleared for Phase 4 mobile from this container. On 2026-07-09 UTC, local dependency-light checks passed, but GitHub Actions could not be triggered because `gh` is unavailable and no git remote is configured. `make api-install` still fails here with a `403 Forbidden` package-index tunnel error for FastAPI, `REQUIRE_FASTAPI_TESTS=1 make api-test` fails as intended when FastAPI is missing, and Docker/PostgreSQL commands cannot run because Docker is not installed. Follow `docs/deployment/API-CI-RUNBOOK.md` and record a passing `api-integration` workflow before unlocking mobile work.
+The Phase 4 foundation intentionally does not claim native camera-byte upload is complete. Native camera integration, secure signed upload, platform secure storage, and physical-device accessibility testing are follow-on increments documented in `docs/ROADMAP.md`.

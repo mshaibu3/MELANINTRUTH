@@ -18,7 +18,37 @@ class MobileController extends Notifier<MobileState> {
   MelaninTruthGateway get _gateway => ref.read(gatewayProvider);
 
   @override
-  MobileState build() => const MobileState();
+  MobileState build() {
+    Future<void>.microtask(_restoreSession);
+    return const MobileState();
+  }
+
+  Future<void> _restoreSession() async {
+    try {
+      final session = await _gateway.restoreSession();
+      if (session == null ||
+          state.stage != MobileStage.welcome ||
+          state.signedIn) {
+        return;
+      }
+      final consent = await _gateway.consentSnapshot(session: session);
+      if (!consent.requiredConsentGranted) {
+        return;
+      }
+      _session = session;
+      state = state.copyWith(
+        signedIn: true,
+        stage: MobileStage.home,
+        imageProcessingConsent: consent.imageProcessing,
+        cloudProcessingConsent: consent.cloudProcessing,
+        modelImprovementConsent: consent.modelImprovement,
+        notice: 'Secure session restored and consent revalidated.',
+        clearError: true,
+      );
+    } on Object {
+      // Startup must remain usable when secure storage or the network is unavailable.
+    }
+  }
 
   void continueFromWelcome() {
     state = state.copyWith(
@@ -79,7 +109,8 @@ class MobileController extends Notifier<MobileState> {
         loading: false,
         signedIn: true,
         stage: MobileStage.home,
-        notice: 'Signed in. Session credentials remain in memory only.',
+        notice:
+            'Signed in. Access credentials remain in memory and refresh-session material uses secure platform storage.',
       );
     } on GatewayException catch (error) {
       state = state.copyWith(loading: false, error: error.message);
@@ -133,7 +164,8 @@ class MobileController extends Notifier<MobileState> {
       guidance = 'Hold the device steady and keep the face centred.';
     } else {
       quality = CaptureQuality.acceptable;
-      guidance = 'Capture conditions are suitable for a governed estimate.';
+      guidance =
+          'Capture conditions are suitable. The production gateway will request camera permission before upload.';
     }
 
     final lightingQuality =
@@ -236,7 +268,7 @@ class MobileController extends Notifier<MobileState> {
       await _gateway.requestDataDeletion(session: session);
       _session = null;
       state = const MobileState(
-        notice: 'Deletion requested. Local session data was cleared.',
+        notice: 'Deletion requested. Local secure-session data was cleared.',
       );
     } on GatewayException catch (error) {
       state = state.copyWith(loading: false, error: error.message);

@@ -43,17 +43,29 @@ Phase 3.5 acceptance requires:
 * The run proved dependency installation, Alembic migration, migration verification, no-skip FastAPI coverage, OpenAPI generation and validation, zero OpenAPI drift, and PostgreSQL-compatible repository verification.
 * The general `ci` workflow also passed as run `29109587214` for the same commit.
 
-## Phase 4 mobile acceptance criteria
+## Phase 4 mobile acceptance criteria — satisfied
 
-Phase 4 is accepted only when all of the following are true:
-
-* `.github/workflows/mobile-ci.yml` passes `flutter pub get`, `flutter analyze`, and all Flutter tests without skips.
+* `.github/workflows/mobile-ci.yml` passes `flutter pub get`, strict Dart formatting, `flutter analyze`, and all Flutter tests without skips.
 * The first-run flow displays the exact scientific limitation before capture or analysis.
 * Image-processing and cloud-processing consent are required and independently represented; model-improvement consent remains optional and off by default.
 * No screen or gateway path claims exact biological melanin measurement, beauty enhancement, whitening, lightening, smoothing, reshaping, or identity alteration.
-* Session credentials remain memory-only in the Phase 4 foundation and are never logged.
+* Phase 4 access credentials remain memory-only and are never logged.
 * Capture-quality logic rejects underexposed, overexposed, and unstable conditions before analysis.
 * Results include confidence, uncertainty, lighting quality, capture quality, explanation, limitation language, and explicit no-filter status.
 * Privacy controls expose data-export and data-deletion requests, and deletion clears the local session and consent state.
-* The production HTTP gateway must not fabricate image uploads. If secure camera-byte transport is not configured, analysis must fail clearly rather than submit synthetic image data.
 * Widget and controller tests cover the consent-first happy path, unsafe capture rejection, optional model-improvement consent, and deletion-state clearing.
+
+## Phase 5 mobile production-integration acceptance criteria
+
+Phase 5 is accepted only when all of the following are true:
+
+* Native capture uses the platform camera picker and surfaces cancellation or denied permission without fabricating image bytes.
+* Only JPEG or PNG captures of 10 MB or less are accepted, and every capture is assigned a SHA-256 checksum before transport.
+* Production API base URLs require HTTPS, except explicit emulator/local-development hosts.
+* The upload path follows the backend contract exactly: authenticated upload request, HTTPS binary PUT, authenticated upload completion, then authenticated analysis creation.
+* The signed binary PUT is the only automatically retried state in the upload lifecycle; retries are bounded and limited to transport, timeout, rate-limit, and server failures.
+* Access tokens remain memory-only. Refresh token and session ID are persisted through platform secure storage, rotated through `/auth/refresh`, and cleared after privacy deletion or invalid refresh.
+* Restored sessions are not admitted to the home screen until required image-processing and cloud-processing consent are revalidated through `/consent`.
+* Gateway tests verify request ordering, raw bytes, checksum headers, bounded retry, refresh rotation, consent revalidation, HTTPS enforcement, and deletion-state clearing.
+* The existing `ci`, `api-integration`, and `mobile-ci` workflows pass on the Phase 5 pull request without skipped mobile tests.
+* Phase 5 does not claim a production Android or iOS release until platform scaffolding, camera usage descriptions, application signing, store entitlements, accessibility checks, and physical-device tests are completed and recorded.

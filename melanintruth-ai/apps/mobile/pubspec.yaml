@@ -1,7 +1,7 @@
 name: melanintruth_mobile
 description: Consent-first visible skin appearance analysis for melanin-rich skin.
 publish_to: none
-version: 0.4.0+1
+version: 0.5.0+1
 
 environment:
   sdk: '>=3.4.0 <4.0.0'
@@ -9,8 +9,11 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  crypto: ^3.0.6
   flutter_riverpod: ^2.5.1
+  flutter_secure_storage: ^9.2.4
   http: ^1.2.2
+  image_picker: ^1.1.2
 
 dev_dependencies:
   flutter_test:

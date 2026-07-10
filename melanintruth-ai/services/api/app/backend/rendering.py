@@ -16,10 +16,10 @@ class RenderService:
         self.safety_gate = safety_gate or SafetyGate()
 
     def create_render(self, user_id: str, analysis_id: str, original: Image, rendered: Image | None = None, confidence: float | None = None) -> RenderJob:
-        self.consent.assert_granted(user_id, ConsentPurpose.IMAGE_PROCESSING)
         analysis = self.repo.analysis_jobs.get(analysis_id)
         if not analysis or analysis.user_id != user_id or analysis.status != JobStatus.COMPLETED:
             raise ValidationError("completed source analysis is required before rendering")
+        self.consent.assert_granted(user_id, ConsentPurpose.IMAGE_PROCESSING)
         user = self.repo.users[user_id]
         job = RenderJob(user_id=user.id, tenant_id=user.tenant_id, analysis_id=analysis_id)
         self.repo.render_jobs[job.id] = job

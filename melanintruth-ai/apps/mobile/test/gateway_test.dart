@@ -11,12 +11,12 @@ import 'package:melanintruth_mobile/src/retry.dart';
 import 'package:melanintruth_mobile/src/session_store.dart';
 
 class _FakeCaptureSource implements CaptureSource {
-  _FakeCaptureSource(this.capture);
+  _FakeCaptureSource(this._capturedImage);
 
-  final CapturedImage capture;
+  final CapturedImage _capturedImage;
 
   @override
-  Future<CapturedImage> capture() async => capture;
+  Future<CapturedImage> capture() async => _capturedImage;
 }
 
 const _session = AuthSession(

@@ -1,16 +1,15 @@
+from __future__ import annotations
+
 from app.schemas.common import BaseModel, Field
+
+DEFAULT_PROHIBITED_USES = [
+    "beautification_filter",
+    "skin_whitening",
+    "skin_lightening",
+    "texture_smoothing",
+    "identity_alteration",
+]
+
 if BaseModel is object:
     class ModelVersionRequest(dict):
         pass
-else:
-    class ModelVersionRequest(BaseModel):
-        model_id: str
-        version: str
-        purpose: str
-        status: str
-        known_limitations: str = Field(min_length=20)
-        supported_skin_tone_ranges: list[str]
-        supported_lighting_conditions: list[str]
-        prohibited_uses: list[str]
-        approved_by: str | None = None
-        approval_date: bool | None = None

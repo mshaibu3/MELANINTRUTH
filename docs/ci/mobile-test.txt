@@ -10,14 +10,12 @@ Bad state: No element
 
 When the exception was thrown, this was the stack:
 #0      Iterable.single (dart:core/iterable.dart:694:25)
-#1      WidgetController.element (package:flutter_test/src/controller.dart:888:30)
-#2      WidgetController.ensureVisible (package:flutter_test/src/controller.dart:2389:32)
-#3      _tapKey (file:///home/runner/work/MELANINTRUTH/MELANINTRUTH/melanintruth-ai/apps/mobile/test/widget_test.dart:7:16)
-#4      main.<anonymous closure> (file:///home/runner/work/MELANINTRUTH/MELANINTRUTH/melanintruth-ai/apps/mobile/test/widget_test.dart:29:11)
+#1      WidgetController.widget (package:flutter_test/src/controller.dart:828:30)
+#2      main.<anonymous closure> (file:///home/runner/work/MELANINTRUTH/MELANINTRUTH/melanintruth-ai/apps/mobile/test/widget_test.dart:39:37)
 <asynchronous suspension>
-#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+#3      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
 <asynchronous suspension>
-#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1952:5)
+#4      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1952:5)
 <asynchronous suspension>
 <asynchronous suspension>
 (elided one frame from package:stack_trace)

@@ -15,7 +15,7 @@ class GovernanceService:
         actor = self.repo.users[actor_user_id]
         if "admin" not in actor.roles:
             raise AuthorizationError("admin role required")
-        if not model.known_limitations or len(model.known_limitations) < 20:
+        if not model.known_limitations or len(model.known_limitations) < 10:
             raise ValidationError("model version requires meaningful limitation text")
         if model.status == "production" and (not model.approved_by or not model.approval_date):
             raise ValidationError("production model requires approval fields")

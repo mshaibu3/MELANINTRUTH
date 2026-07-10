@@ -1,8 +1,0 @@
-
-✅ /home/runner/work/MELANINTRUTH/MELANINTRUTH/melanintruth-ai/apps/mobile/test/controller_test.dart: rejects underexposed capture telemetry
-✅ /home/runner/work/MELANINTRUTH/MELANINTRUTH/melanintruth-ai/apps/mobile/test/controller_test.dart: keeps model-improvement consent optional
-✅ /home/runner/work/MELANINTRUTH/MELANINTRUTH/melanintruth-ai/apps/mobile/test/controller_test.dart: deletion request clears the local session
-✅ /home/runner/work/MELANINTRUTH/MELANINTRUTH/melanintruth-ai/apps/mobile/test/widget_test.dart: renders the safety promise and scientific limitation
-✅ /home/runner/work/MELANINTRUTH/MELANINTRUTH/melanintruth-ai/apps/mobile/test/widget_test.dart: completes consent-first governed analysis flow
-
-🎉 5 tests passed.

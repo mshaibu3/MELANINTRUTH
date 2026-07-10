@@ -1,0 +1,5 @@
+# Copy to android/key.properties locally. Never commit the real file or keystore.
+storePassword=replace-with-secret
+keyPassword=replace-with-secret
+keyAlias=upload
+storeFile=../keystores/melanintruth-upload.jks

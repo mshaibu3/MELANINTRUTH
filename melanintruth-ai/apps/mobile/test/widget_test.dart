@@ -17,8 +17,9 @@ Future<void> _tapKey(WidgetTester tester, String key) async {
 }
 
 void main() {
-  testWidgets('renders the safety promise and scientific limitation',
-      (tester) async {
+  testWidgets('renders the safety promise and scientific limitation', (
+    tester,
+  ) async {
     await tester.pumpWidget(const MelaninTruthApp());
 
     expect(find.text('True skin. True tone. No filter.'), findsOneWidget);

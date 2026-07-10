@@ -72,10 +72,7 @@ class _Shell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        leading: leading,
-        title: Text(title),
-      ),
+      appBar: AppBar(leading: leading, title: Text(title)),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(20),
@@ -89,10 +86,7 @@ class _Shell extends StatelessWidget {
               const SizedBox(height: 16),
             ],
             if (state.notice != null) ...[
-              _StatusPanel(
-                icon: Icons.info_outline,
-                message: state.notice!,
-              ),
+              _StatusPanel(icon: Icons.info_outline, message: state.notice!),
               const SizedBox(height: 16),
             ],
             ...children,
@@ -181,10 +175,7 @@ class _WelcomeScreen extends ConsumerWidget {
           style: Theme.of(context).textTheme.headlineMedium,
         ),
         const SizedBox(height: 18),
-        const Text(
-          scientificLimitation,
-          textAlign: TextAlign.center,
-        ),
+        const Text(scientificLimitation, textAlign: TextAlign.center),
         const SizedBox(height: 20),
         const _SafetyCard(),
         const SizedBox(height: 12),
@@ -429,18 +420,14 @@ class _CaptureScreen extends ConsumerWidget {
             ),
             borderRadius: BorderRadius.circular(24),
           ),
-          child: const Center(
-            child: Icon(Icons.face_6_outlined, size: 110),
-          ),
+          child: const Center(child: Icon(Icons.face_6_outlined, size: 110)),
         ),
         const SizedBox(height: 18),
-        Text(
-          'Capture guidance',
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
+        Text('Capture guidance', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 8),
         const Text(
-            '• Use even indirect light; avoid direct sun and deep shade.'),
+          '• Use even indirect light; avoid direct sun and deep shade.',
+        ),
         const Text('• Remove beauty filters and automatic skin smoothing.'),
         const Text('• Hold the device steady and keep the face centred.'),
         const Text('• Do not capture another person without their consent.'),
@@ -532,14 +519,8 @@ class _QualityScreen extends ConsumerWidget {
         const SizedBox(height: 10),
         Text(assessment.guidance, textAlign: TextAlign.center),
         const SizedBox(height: 22),
-        _ScoreRow(
-          label: 'Lighting quality',
-          value: assessment.lightingQuality,
-        ),
-        _ScoreRow(
-          label: 'Capture quality',
-          value: assessment.captureQuality,
-        ),
+        _ScoreRow(label: 'Lighting quality', value: assessment.lightingQuality),
+        _ScoreRow(label: 'Capture quality', value: assessment.captureQuality),
         _ScoreRow(label: 'Stability', value: assessment.stability),
         const SizedBox(height: 24),
         if (assessment.isAcceptable)
@@ -611,14 +592,8 @@ class _ResultScreen extends ConsumerWidget {
         const SizedBox(height: 18),
         _ScoreRow(label: 'Confidence', value: result.confidence),
         _ScoreRow(label: 'Uncertainty', value: result.uncertainty),
-        _ScoreRow(
-          label: 'Lighting quality',
-          value: result.lightingQuality,
-        ),
-        _ScoreRow(
-          label: 'Capture quality',
-          value: result.captureQuality,
-        ),
+        _ScoreRow(label: 'Lighting quality', value: result.lightingQuality),
+        _ScoreRow(label: 'Capture quality', value: result.captureQuality),
         const SizedBox(height: 16),
         Card(
           child: Padding(
@@ -675,10 +650,7 @@ class _ScoreRow extends StatelessWidget {
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(label),
-              Text('${(normalised * 100).round()}%'),
-            ],
+            children: [Text(label), Text('${(normalised * 100).round()}%')],
           ),
           const SizedBox(height: 6),
           LinearProgressIndicator(value: normalised),
@@ -715,13 +687,15 @@ class _PrivacyScreen extends ConsumerWidget {
           leading: Icon(Icons.visibility_off_outlined),
           title: Text('No raw-image logging'),
           subtitle: Text(
-              'Tokens, passwords, and raw image paths are excluded from logs.'),
+            'Tokens, passwords, and raw image paths are excluded from logs.',
+          ),
         ),
         const ListTile(
           leading: Icon(Icons.model_training_outlined),
           title: Text('Separate training consent'),
-          subtitle:
-              Text('Model-improvement consent is optional and off by default.'),
+          subtitle: Text(
+            'Model-improvement consent is optional and off by default.',
+          ),
         ),
         const SizedBox(height: 18),
         FilledButton.icon(

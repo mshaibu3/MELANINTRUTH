@@ -55,9 +55,7 @@ Phase 3.5 acceptance requires:
 * Privacy controls expose data-export and data-deletion requests, and deletion clears the local session and consent state.
 * Widget and controller tests cover the consent-first happy path, unsafe capture rejection, optional model-improvement consent, and deletion-state clearing.
 
-## Phase 5 mobile production-integration acceptance criteria
-
-Phase 5 is accepted only when all of the following are true:
+## Phase 5 mobile production-integration acceptance criteria — satisfied
 
 * Native capture uses the platform camera picker and surfaces cancellation or denied permission without fabricating image bytes.
 * Only JPEG or PNG captures of 10 MB or less are accepted, and every capture is assigned a SHA-256 checksum before transport.
@@ -67,5 +65,20 @@ Phase 5 is accepted only when all of the following are true:
 * Access tokens remain memory-only. Refresh token and session ID are persisted through platform secure storage, rotated through `/auth/refresh`, and cleared after privacy deletion or invalid refresh.
 * Restored sessions are not admitted to the home screen until required image-processing and cloud-processing consent are revalidated through `/consent`.
 * Gateway tests verify request ordering, raw bytes, checksum headers, bounded retry, refresh rotation, consent revalidation, HTTPS enforcement, and deletion-state clearing.
-* The existing `ci`, `api-integration`, and `mobile-ci` workflows pass on the Phase 5 pull request without skipped mobile tests.
-* Phase 5 does not claim a production Android or iOS release until platform scaffolding, camera usage descriptions, application signing, store entitlements, accessibility checks, and physical-device tests are completed and recorded.
+* Post-merge commit `8855ffc4bdbd8e83e499089ca5c82654ec950a8d` passed `ci`, `mobile-ci`, and `api-integration`.
+
+## Phase 6 native release-hardening acceptance criteria
+
+Phase 6 is accepted only when all of the following are true:
+
+* Canonical Android and iOS platform projects are committed and use `com.hakilixlabs.melanintruth` as the production identity.
+* Android declares CAMERA and INTERNET permissions, disables application backup, blocks cleartext traffic, enables release shrinking, and contains no release fallback to the debug signing key.
+* Android release signing is read only from an ignored `key.properties` file and no keystore or signing secret is committed.
+* iOS includes a precise camera usage description, blocks arbitrary network loads, declares only exempt encryption, and targets iOS 13.0 or later.
+* Release-mode application startup fails closed when `MELANINTRUTH_API_BASE_URL` is absent, malformed, or non-HTTPS; it must never silently enter preview mode.
+* Telemetry accepts only allow-listed coarse lifecycle fields and rejects tokens, signed URLs, checksums, raw bytes, and user identifiers.
+* `tool/verify_native_config.py` passes against the committed native configuration.
+* `mobile-ci` passes formatting, static analysis, and all unit/widget/controller/gateway tests.
+* `mobile-native-ci` builds unsigned Android and iOS release artifacts and runs the consent/accessibility smoke test on an Android emulator.
+* Existing `ci` and `api-integration` workflows remain green on the same Phase 6 head commit.
+* Phase 6 does not claim store-release readiness until production signing, store entitlements, physical-device camera and permission testing, accessibility review, privacy declarations, and release governance approval are recorded.

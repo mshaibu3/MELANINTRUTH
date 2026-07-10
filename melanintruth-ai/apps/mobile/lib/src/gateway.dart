@@ -7,12 +7,10 @@ import 'capture.dart';
 import 'models.dart';
 import 'retry.dart';
 import 'session_store.dart';
+import 'telemetry.dart';
 
 abstract interface class MelaninTruthGateway {
-  Future<AuthSession> signIn({
-    required String email,
-    required String password,
-  });
+  Future<AuthSession> signIn({required String email, required String password});
 
   Future<AuthSession?> restoreSession();
 
@@ -136,11 +134,13 @@ class HttpMelaninTruthGateway implements MelaninTruthGateway {
     CaptureSource? captureSource,
     SessionStore? sessionStore,
     RetryPolicy? uploadRetryPolicy,
+    TelemetrySink? telemetry,
   })  : baseUrl = baseUrl.replaceFirst(RegExp(r'/$'), ''),
         _client = client ?? http.Client(),
         _captureSource = captureSource ?? ImagePickerCaptureSource(),
         _sessionStore = sessionStore ?? SecureSessionStore(),
-        _uploadRetryPolicy = uploadRetryPolicy ?? RetryPolicy() {
+        _uploadRetryPolicy = uploadRetryPolicy ?? RetryPolicy(),
+        _telemetry = telemetry ?? const NoopTelemetrySink() {
     final uri = Uri.parse(this.baseUrl);
     final localDevelopmentHost = uri.host == 'localhost' ||
         uri.host == '127.0.0.1' ||
@@ -157,6 +157,7 @@ class HttpMelaninTruthGateway implements MelaninTruthGateway {
   final CaptureSource _captureSource;
   final SessionStore _sessionStore;
   final RetryPolicy _uploadRetryPolicy;
+  final TelemetrySink _telemetry;
 
   Map<String, String> _headers([AuthSession? session]) => {
         'Content-Type': 'application/json',
@@ -224,6 +225,11 @@ class HttpMelaninTruthGateway implements MelaninTruthGateway {
     _expectSuccess(response);
     final session = _sessionFromBody(_decode(response));
     await _saveRefreshSession(session);
+    _telemetry.record(
+      TelemetryRecord(TelemetryEvent.sessionEstablished, const {
+        'outcome': 'success',
+      }),
+    );
     return session;
   }
 
@@ -245,9 +251,19 @@ class HttpMelaninTruthGateway implements MelaninTruthGateway {
       _expectSuccess(response);
       final session = _sessionFromBody(_decode(response));
       await _saveRefreshSession(session);
+      _telemetry.record(
+        TelemetryRecord(TelemetryEvent.sessionRestoreCompleted, const {
+          'outcome': 'success',
+        }),
+      );
       return session;
     } on Object {
       await _sessionStore.clear();
+      _telemetry.record(
+        TelemetryRecord(TelemetryEvent.sessionRestoreCompleted, const {
+          'outcome': 'failed',
+        }),
+      );
       return null;
     }
   }
@@ -310,6 +326,11 @@ class HttpMelaninTruthGateway implements MelaninTruthGateway {
       throw const GatewayException('Retake the capture before analysis.');
     }
 
+    _telemetry.record(
+      TelemetryRecord(TelemetryEvent.captureRequested, const {
+        'stage': 'native_camera',
+      }),
+    );
     final capture = await _captureSource.capture();
     final metadata = {
       'content_type': capture.contentType,
@@ -338,8 +359,18 @@ class HttpMelaninTruthGateway implements MelaninTruthGateway {
         },
         body: capture.bytes,
       ),
+      onAttempt: (attempt) {
+        _telemetry.record(
+          TelemetryRecord(TelemetryEvent.uploadAttempted, {'attempt': attempt}),
+        );
+      },
     );
     _expectSuccess(uploadResponse);
+    _telemetry.record(
+      TelemetryRecord(TelemetryEvent.uploadCompleted, const {
+        'status_class': 'success',
+      }),
+    );
 
     final completeResponse = await _client.post(
       Uri.parse('$baseUrl/images/upload-complete'),
@@ -355,6 +386,11 @@ class HttpMelaninTruthGateway implements MelaninTruthGateway {
       body: jsonEncode({'image_id': imageId, 'cloud': true}),
     );
     _expectSuccess(analysisResponse);
+    _telemetry.record(
+      TelemetryRecord(TelemetryEvent.analysisCompleted, const {
+        'outcome': 'success',
+      }),
+    );
     return _analysisResult(_decode(analysisResponse));
   }
 
@@ -397,5 +433,10 @@ class HttpMelaninTruthGateway implements MelaninTruthGateway {
     );
     _expectSuccess(response);
     await _sessionStore.clear();
+    _telemetry.record(
+      TelemetryRecord(TelemetryEvent.privacyDeletionCompleted, const {
+        'outcome': 'success',
+      }),
+    );
   }
 }

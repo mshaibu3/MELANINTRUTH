@@ -59,17 +59,11 @@ class MobileController extends Notifier<MobileState> {
   }
 
   void setImageProcessingConsent(bool value) {
-    state = state.copyWith(
-      imageProcessingConsent: value,
-      clearError: true,
-    );
+    state = state.copyWith(imageProcessingConsent: value, clearError: true);
   }
 
   void setCloudProcessingConsent(bool value) {
-    state = state.copyWith(
-      cloudProcessingConsent: value,
-      clearError: true,
-    );
+    state = state.copyWith(cloudProcessingConsent: value, clearError: true);
   }
 
   void setModelImprovementConsent(bool value) {
@@ -84,18 +78,11 @@ class MobileController extends Notifier<MobileState> {
       );
       return;
     }
-    state = state.copyWith(
-      stage: MobileStage.signIn,
-      clearError: true,
-    );
+    state = state.copyWith(stage: MobileStage.signIn, clearError: true);
   }
 
   Future<void> signIn(String email, String password) async {
-    state = state.copyWith(
-      loading: true,
-      clearError: true,
-      clearNotice: true,
-    );
+    state = state.copyWith(loading: true, clearError: true, clearNotice: true);
     try {
       final session = await _gateway.signIn(email: email, password: password);
       await _gateway.grantConsent(

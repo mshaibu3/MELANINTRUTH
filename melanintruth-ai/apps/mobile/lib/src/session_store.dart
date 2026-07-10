@@ -1,10 +1,7 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class StoredSession {
-  const StoredSession({
-    required this.sessionId,
-    required this.refreshToken,
-  });
+  const StoredSession({required this.sessionId, required this.refreshToken});
 
   final String sessionId;
   final String refreshToken;

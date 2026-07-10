@@ -20,35 +20,42 @@ On 2026-07-10 UTC, commit `6458f1591fbaedd46316b2468d6b18e49ec4557f` passed both
 
 ## Phase 4 — consent-first mobile foundation completed
 
-Commit `85339451e4c69c22818035373cae6b34d20a4ae1` passed `ci`, `api-integration`, and `mobile-ci` on 2026-07-10 UTC. Phase 4 delivered:
+Commit `85339451e4c69c22818035373cae6b34d20a4ae1` passed `ci`, `api-integration`, and `mobile-ci` on 2026-07-10 UTC. Phase 4 delivered onboarding, independent consent, quality gating, governed results, privacy controls, and strict Flutter CI.
 
-* onboarding that states the exact scientific limitation before analysis;
-* separate required image/cloud consent and optional model-improvement consent;
-* memory-only access-session handling with no token, password, or raw-image logging;
-* guided capture telemetry that rejects underexposed, overexposed, and unstable conditions before analysis;
-* governed result presentation with confidence, uncertainty, capture quality, lighting quality, explanation, and no-filter language;
-* privacy export and deletion controls;
-* a dedicated strict `mobile-ci` workflow with Flutter analysis, tests, coverage, and read-only repository permissions.
+## Phase 5 — mobile production integration completed
 
-## Phase 5 — mobile production integration
+Commit `8855ffc4bdbd8e83e499089ca5c82654ec950a8d` passed post-merge `ci` run `29116800297`, `mobile-ci` run `29116800314`, and `api-integration` run `29116800346`. Phase 5 delivered:
 
-Phase 5 moves the Flutter foundation onto the real backend lifecycle while preserving the Phase 4 safety controls:
-
-* native platform camera capture through `image_picker`, with cancellation and permission denial surfaced safely;
+* native camera capture through `image_picker`;
 * JPEG/PNG and 10 MB limits plus local SHA-256 checksums;
 * authenticated signed-upload request, HTTPS binary PUT, upload completion, and analysis creation;
 * bounded retry only for the idempotent binary PUT;
 * platform secure storage for refresh token and session ID, with access tokens retained in memory;
-* refresh-token rotation, invalid-session clearing, and server-side consent revalidation before automatic restoration;
-* gateway and controller tests covering transport order, bytes, checksum headers, retry, secure-session rotation, consent restoration, and privacy deletion.
+* refresh-token rotation, invalid-session clearing, and server-side consent revalidation;
+* gateway and controller tests covering transport order, bytes, checksum headers, retry, session restoration, and privacy deletion.
 
-## Phase 5 release boundary
+## Phase 6 — native release hardening
 
-The Phase 5 pull request may be merged after `ci`, `api-integration`, and `mobile-ci` pass. It does not constitute an Android or iOS production release. Native release readiness additionally requires generated platform projects, camera usage descriptions, application signing, environment-specific API configuration, store entitlements, accessibility verification, and physical-device integration tests.
+Phase 6 closes the generated-platform and native-build gap while retaining a strict no-store-release boundary:
 
-## Phase 6 candidates
+* commit canonical Android and iOS Flutter projects;
+* use the stable package and bundle identity `com.hakilixlabs.melanintruth`;
+* declare camera use explicitly and prohibit arbitrary or cleartext network transport;
+* disable Android application backup and remove the generated debug-key release-signing fallback;
+* support secret-backed Android signing without committing keystores or credentials;
+* fail closed in release builds when `MELANINTRUTH_API_BASE_URL` is absent or non-HTTPS;
+* emit only allow-listed, non-identifying lifecycle telemetry;
+* verify native configuration in code;
+* build unsigned Android and iOS release artifacts in CI;
+* execute consent and accessibility smoke coverage on an Android emulator.
 
-* Generate and harden Android/iOS platform projects and permission manifests.
-* Add device-farm tests for camera permission denial, capture cancellation, offline upload recovery, consent withdrawal, export, and deletion.
-* Add short-lived signed-upload expiry handling and server-issued idempotency keys.
-* Add production observability that excludes tokens, raw images, checksums, and user-identifying paths.
+## Phase 6 release boundary
+
+Phase 6 proves reproducible unsigned native builds and emulator-level acceptance. It does not claim App Store or Play Store readiness until production signing credentials, store entitlements, final icons/launch assets, environment-specific endpoints, physical camera and permission-denial tests, accessibility review on real devices, privacy declarations, and release-candidate approval are completed and recorded.
+
+## Phase 7 candidates
+
+* Add signed release-candidate workflows backed by protected environments and short-lived credentials.
+* Run physical-device or managed device-farm tests for camera capture, permission denial, cancellation, offline recovery, consent withdrawal, export, and deletion.
+* Add server-issued upload expiry and idempotency contracts.
+* Complete store privacy manifests, data-safety declarations, screenshots, and release governance evidence.

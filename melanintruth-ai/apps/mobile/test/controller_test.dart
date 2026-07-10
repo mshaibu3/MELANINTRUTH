@@ -43,9 +43,7 @@ Future<void> _signIn(ProviderContainer container) async {
 void main() {
   test('restores secure session only after consent revalidation', () async {
     final container = ProviderContainer(
-      overrides: [
-        gatewayProvider.overrideWithValue(const _RestoringGateway()),
-      ],
+      overrides: [gatewayProvider.overrideWithValue(const _RestoringGateway())],
     );
     addTearDown(container.dispose);
 

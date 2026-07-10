@@ -11,13 +11,7 @@ enum MobileStage {
   privacy,
 }
 
-enum CaptureQuality {
-  unknown,
-  acceptable,
-  tooDark,
-  tooBright,
-  unstable,
-}
+enum CaptureQuality { unknown, acceptable, tooDark, tooBright, unstable }
 
 class AuthSession {
   const AuthSession({

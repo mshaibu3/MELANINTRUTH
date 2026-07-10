@@ -31,6 +31,9 @@ void main() {
 
   testWidgets('completes consent-first governed analysis flow',
       (tester) async {
+    await tester.binding.setSurfaceSize(const Size(900, 1400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
     await tester.pumpWidget(const MelaninTruthApp());
     await tester.pumpAndSettle();
 

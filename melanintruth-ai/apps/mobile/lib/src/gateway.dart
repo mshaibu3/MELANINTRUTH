@@ -142,8 +142,9 @@ class HttpMelaninTruthGateway implements MelaninTruthGateway {
         _sessionStore = sessionStore ?? SecureSessionStore(),
         _uploadRetryPolicy = uploadRetryPolicy ?? RetryPolicy() {
     final uri = Uri.parse(this.baseUrl);
-    final localDevelopmentHost =
-        uri.host == 'localhost' || uri.host == '127.0.0.1' || uri.host == '10.0.2.2';
+    final localDevelopmentHost = uri.host == 'localhost' ||
+        uri.host == '127.0.0.1' ||
+        uri.host == '10.0.2.2';
     if (uri.scheme != 'https' && !localDevelopmentHost) {
       throw const GatewayException(
         'The production API base URL must use HTTPS.',
@@ -178,9 +179,8 @@ class HttpMelaninTruthGateway implements MelaninTruthGateway {
     try {
       final body = _decode(response);
       final error = body['error'];
-      message = error is Map<String, dynamic>
-          ? error['message']?.toString()
-          : null;
+      message =
+          error is Map<String, dynamic> ? error['message']?.toString() : null;
     } on Object {
       message = null;
     }
@@ -360,7 +360,8 @@ class HttpMelaninTruthGateway implements MelaninTruthGateway {
 
   AnalysisResult _analysisResult(Map<String, dynamic> body) {
     final result = body['result'];
-    final resultMap = result is Map<String, dynamic> ? result : <String, dynamic>{};
+    final resultMap =
+        result is Map<String, dynamic> ? result : <String, dynamic>{};
     double score(String key, [double fallback = 0]) {
       final value = body[key];
       return value is num ? value.toDouble() : fallback;

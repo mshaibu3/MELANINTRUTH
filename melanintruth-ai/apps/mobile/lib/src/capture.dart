@@ -34,7 +34,8 @@ abstract interface class CaptureSource {
 }
 
 class ImagePickerCaptureSource implements CaptureSource {
-  ImagePickerCaptureSource({ImagePicker? picker}) : _picker = picker ?? ImagePicker();
+  ImagePickerCaptureSource({ImagePicker? picker})
+      : _picker = picker ?? ImagePicker();
 
   final ImagePicker _picker;
 

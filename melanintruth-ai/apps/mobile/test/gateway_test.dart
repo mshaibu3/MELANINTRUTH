@@ -189,7 +189,8 @@ void main() {
   test('deletion clears secure refresh-session material', () async {
     final store = MemorySessionStore();
     await store.save(
-      const StoredSession(sessionId: 'session-1', refreshToken: 'refresh-token'),
+      const StoredSession(
+          sessionId: 'session-1', refreshToken: 'refresh-token'),
     );
     final gateway = HttpMelaninTruthGateway(
       baseUrl: 'https://api.example.com',

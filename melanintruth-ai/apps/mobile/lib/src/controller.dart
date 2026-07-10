@@ -26,7 +26,9 @@ class MobileController extends Notifier<MobileState> {
   Future<void> _restoreSession() async {
     try {
       final session = await _gateway.restoreSession();
-      if (session == null || state.stage != MobileStage.welcome || state.signedIn) {
+      if (session == null ||
+          state.stage != MobileStage.welcome ||
+          state.signedIn) {
         return;
       }
       final consent = await _gateway.consentSnapshot(session: session);

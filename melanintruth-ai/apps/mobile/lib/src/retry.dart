@@ -23,7 +23,8 @@ class RetryPolicy {
     for (var attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         final response = await operation();
-        if (!_isRetryableStatus(response.statusCode) || attempt == maxAttempts) {
+        if (!_isRetryableStatus(response.statusCode) ||
+            attempt == maxAttempts) {
           return response;
         }
       } on SocketException catch (error) {

@@ -43,7 +43,7 @@ else:
         max_image_bytes: int = 10_485_760
         enable_cloud_processing: bool = True
         log_level: str = "INFO"
-        model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+        model_config = SettingsConfigDict(env_file=".env", extra="allow")
 
         def validate_production(self) -> None:
             if self.app_env == "production" and self.jwt_secret in {"", "test-only-change-me", "dev-only-change-with-env"}:

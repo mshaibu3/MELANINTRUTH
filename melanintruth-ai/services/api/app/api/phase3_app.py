@@ -197,7 +197,10 @@ class ApiApplication:
         except ValidationError as exc:
             return 422, structured_error("ANALYSIS_NOT_COMPLETED", str(exc))
         except AuthorizationError as exc:
-            return 403, structured_error("CONSENT_REQUIRED", str(exc))
+            msg = str(exc)
+            if "analysis" in msg.lower() or "not found" in msg.lower() or "completed" in msg.lower():
+                return 422, structured_error("ANALYSIS_NOT_COMPLETED", msg)
+            return 403, structured_error("CONSENT_REQUIRED", msg)
 
     def _render_response(self, job: Any) -> dict[str, Any]:
         public_render_available = job.status == RenderStatus.COMPLETED
@@ -251,6 +254,23 @@ class ApiApplication:
             user = self.require_admin(access_token)
         except ApiError as exc:
             return exc.status_code, exc.response()
+        required_fields = (
+            "model_id",
+            "version",
+            "purpose",
+            "status",
+            "known_limitations",
+            "supported_skin_tone_ranges",
+            "supported_lighting_conditions",
+            "prohibited_uses",
+        )
+        missing_fields = [field for field in required_fields if field not in payload]
+        if missing_fields:
+            return 422, structured_error(
+                "VALIDATION_ERROR",
+                "Required model governance fields are missing.",
+                {"fields": missing_fields},
+            )
         try:
             approval_date = datetime.now(timezone.utc) if payload.get("approval_date") else None
             model = ModelVersion(approval_date=approval_date, **{k: v for k, v in payload.items() if k != "approval_date"})

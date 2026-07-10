@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import 'src/app.dart';
 import 'src/environment.dart';
-import 'src/gateway.dart';
 
 export 'src/app.dart' show MelaninTruthApp;
 export 'src/gateway.dart' show LocalPreviewGateway, MelaninTruthGateway;

@@ -83,6 +83,10 @@ jobs:
   android-device-smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 50
+    env:
+      AVD_NAME: melanintruth_api34_atd
+      ANDROID_SYSTEM_IMAGE: system-images;android-34;aosp_atd;x86_64
+      DIAGNOSTICS_DIR: ${{ github.workspace }}/native-smoke-artifacts
     defaults:
       run:
         working-directory: melanintruth-ai/apps/mobile
@@ -111,44 +115,100 @@ jobs:
       - run: flutter pub get
       - name: Initialise Android device diagnostics
         run: |
-          mkdir -p "$GITHUB_WORKSPACE/native-smoke-artifacts"
-          printf 'Android device smoke runner initialised at %s\n' "$(date -u +%FT%TZ)" > "$GITHUB_WORKSPACE/native-smoke-artifacts/runner-status.txt"
+          mkdir -p "$DIAGNOSTICS_DIR"
+          printf 'Android device smoke runner initialised at %s\n' \
+            "$(date -u +%FT%TZ)" > "$DIAGNOSTICS_DIR/runner-status.txt"
+          flutter doctor -v > "$DIAGNOSTICS_DIR/flutter-doctor.txt" 2>&1 || true
+      - name: Install and configure Android ATD
+        id: prepare
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          {
+            yes | sdkmanager --licenses >/dev/null || true
+            sdkmanager --install \
+              "platform-tools" \
+              "emulator" \
+              "$ANDROID_SYSTEM_IMAGE"
+            echo no | avdmanager create avd \
+              --force \
+              --name "$AVD_NAME" \
+              --package "$ANDROID_SYSTEM_IMAGE"
+            cat >> "$HOME/.android/avd/$AVD_NAME.avd/config.ini" <<'EOF'
+          hw.cpu.ncore=2
+          hw.ramSize=2048
+          hw.gpu.enabled=yes
+          hw.gpu.mode=swiftshader_indirect
+          disk.dataPartition.size=2048M
+          EOF
+            avdmanager list avd
+          } 2>&1 | tee "$DIAGNOSTICS_DIR/avd-prepare.txt"
+      - name: Boot Android ATD without hardware acceleration
+        id: boot
+        if: steps.prepare.outcome == 'success'
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          {
+            nohup emulator \
+              -avd "$AVD_NAME" \
+              -accel off \
+              -no-window \
+              -no-snapshot \
+              -noaudio \
+              -no-boot-anim \
+              -gpu swiftshader_indirect \
+              > "$DIAGNOSTICS_DIR/emulator-console.txt" 2>&1 &
+            echo $! > "$DIAGNOSTICS_DIR/emulator.pid"
+            timeout --foreground --signal=TERM --kill-after=30s 20m bash -c '
+              adb wait-for-device
+              until [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d "\r")" = "1" ]; do
+                sleep 5
+              done
+            '
+            adb shell input keyevent 82 || true
+            adb devices -l
+          } 2>&1 | tee "$DIAGNOSTICS_DIR/emulator-boot.txt"
       - name: Run consent and accessibility smoke test on Android
         id: smoke
+        if: steps.boot.outcome == 'success'
         continue-on-error: true
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 34
-          target: aosp_atd
-          arch: x86_64
-          cores: 2
-          ram-size: 2048M
-          emulator-boot-timeout: 1200
-          disable-linux-hw-accel: true
-          disable-animations: true
-          emulator-options: >-
-            -no-window -no-snapshot -gpu swiftshader_indirect -noaudio
-            -no-boot-anim
-          working-directory: melanintruth-ai/apps/mobile
-          script: |
-            bash -o pipefail -c '
-              trap "adb devices -l > $GITHUB_WORKSPACE/native-smoke-artifacts/adb-devices.txt 2>&1 || true; adb logcat -d -t 10000 > $GITHUB_WORKSPACE/native-smoke-artifacts/adb-logcat.txt 2>&1 || true" EXIT
-              timeout --foreground --signal=TERM --kill-after=30s 25m \
-                flutter test integration_test/app_smoke_test.dart \
-                -d emulator-5554 --timeout 5m --no-pub --reporter expanded \
-                2>&1 | tee "$GITHUB_WORKSPACE/native-smoke-artifacts/android-device-smoke.txt"
-            '
+        run: |
+          set -o pipefail
+          timeout --foreground --signal=TERM --kill-after=30s 20m \
+            flutter test integration_test/app_smoke_test.dart \
+            -d emulator-5554 --timeout 5m --no-pub --reporter expanded \
+            2>&1 | tee "$DIAGNOSTICS_DIR/android-device-smoke.txt"
+      - name: Capture Android device diagnostics
+        if: always()
+        run: |
+          adb devices -l > "$DIAGNOSTICS_DIR/adb-devices.txt" 2>&1 || true
+          adb shell getprop > "$DIAGNOSTICS_DIR/adb-getprop.txt" 2>&1 || true
+          adb logcat -d -t 15000 > "$DIAGNOSTICS_DIR/adb-logcat.txt" 2>&1 || true
+          ps auxww > "$DIAGNOSTICS_DIR/processes.txt" 2>&1 || true
+          cp "$HOME/.android/avd/$AVD_NAME.avd/config.ini" \
+            "$DIAGNOSTICS_DIR/avd-config.ini.txt" 2>/dev/null || true
       - name: Upload Android device diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: android-device-smoke-diagnostics
-          path: native-smoke-artifacts/*.txt
+          path: native-smoke-artifacts/*
           if-no-files-found: error
           retention-days: 14
+      - name: Stop Android ATD
+        if: always()
+        run: |
+          adb emu kill >/dev/null 2>&1 || true
+          if [ -f "$DIAGNOSTICS_DIR/emulator.pid" ]; then
+            kill "$(cat "$DIAGNOSTICS_DIR/emulator.pid")" >/dev/null 2>&1 || true
+          fi
       - name: Enforce Android device smoke result
         if: always()
-        run: test "${{ steps.smoke.outcome }}" = "success"
+        run: |
+          test "${{ steps.prepare.outcome }}" = "success"
+          test "${{ steps.boot.outcome }}" = "success"
+          test "${{ steps.smoke.outcome }}" = "success"
 
   native-release-gate:
     if: always()

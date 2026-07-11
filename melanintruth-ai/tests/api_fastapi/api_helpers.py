@@ -55,9 +55,26 @@ def grant(client, token, purpose):
 
 
 def complete_image(client, token, checksum="a" * 64, size=4096):
-    payload = {"content_type": "image/png", "size_bytes": size, "checksum_sha256": checksum}
-    request = client.post("/images/upload-request", headers=auth_header(token), json=payload)
+    metadata = {
+        "content_type": "image/png",
+        "size_bytes": size,
+        "checksum_sha256": checksum,
+    }
+    request = client.post(
+        "/images/upload-request",
+        headers=auth_header(token),
+        json=metadata,
+    )
     assert request.status_code == 200
-    complete = client.post("/images/upload-complete", headers=auth_header(token), json=payload)
+    ticket = request.json()
+    complete = client.post(
+        "/images/upload-complete",
+        headers=auth_header(token),
+        json={
+            **metadata,
+            "upload_id": ticket["upload_id"],
+            "idempotency_key": ticket["idempotency_key"],
+        },
+    )
     assert complete.status_code == 200
     return complete.json()["image_id"]

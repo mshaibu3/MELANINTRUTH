@@ -1,0 +1,56 @@
+{
+  "schema_version": "1.0",
+  "application_id": "com.hakilixlabs.melanintruth",
+  "data_shared_with_third_parties": false,
+  "data_encrypted_in_transit": true,
+  "account_deletion_available": true,
+  "data_types": [
+    {
+      "category": "photos_and_videos",
+      "type": "photos",
+      "collected": true,
+      "required": true,
+      "linked_to_identity": true,
+      "ephemeral_processing": false,
+      "purposes": ["app_functionality"],
+      "retention": "until_user_deletion_or_configured_retention_expiry"
+    },
+    {
+      "category": "personal_info",
+      "type": "email_address",
+      "collected": true,
+      "required": true,
+      "linked_to_identity": true,
+      "ephemeral_processing": false,
+      "purposes": ["account_management", "app_functionality"],
+      "retention": "until_account_deletion"
+    },
+    {
+      "category": "app_activity",
+      "type": "other_user_generated_content",
+      "collected": true,
+      "required": true,
+      "linked_to_identity": true,
+      "ephemeral_processing": false,
+      "purposes": ["app_functionality"],
+      "retention": "until_user_deletion_or_configured_retention_expiry",
+      "notes": "Governed visible skin-appearance analysis results, confidence and uncertainty metadata."
+    },
+    {
+      "category": "diagnostics",
+      "type": "other_diagnostics",
+      "collected": false,
+      "required": false,
+      "linked_to_identity": false,
+      "ephemeral_processing": true,
+      "purposes": [],
+      "notes": "No external telemetry vendor is enabled; the allow-listed sink is a no-op by default."
+    }
+  ],
+  "prohibited_claims": [
+    "exact biological melanin measurement",
+    "beautification",
+    "whitening or lightening",
+    "identity alteration"
+  ]
+}

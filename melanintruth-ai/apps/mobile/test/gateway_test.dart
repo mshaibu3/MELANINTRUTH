@@ -64,11 +64,20 @@ void main() {
           expect(body['checksum_sha256'], capture.checksumSha256);
           expect(body['size_bytes'], bytes.length);
           return http.Response(
-            jsonEncode({'upload_url': 'https://uploads.example.com/object'}),
+            jsonEncode({
+              'upload_id': 'upload-1',
+              'upload_url': 'https://uploads.example.com/object',
+              'checksum_sha256': capture.checksumSha256,
+              'expires_at': '2099-01-01T00:00:00Z',
+              'idempotency_key': 'server-key-1-abcdefghijklmnop',
+            }),
             201,
           );
         }
         if (request.url.path == '/images/upload-complete') {
+          final body = jsonDecode(request.body) as Map<String, dynamic>;
+          expect(body['upload_id'], 'upload-1');
+          expect(body['idempotency_key'], 'server-key-1-abcdefghijklmnop');
           return http.Response(
             jsonEncode({'image_id': 'image-1', 'status': 'uploaded'}),
             201,

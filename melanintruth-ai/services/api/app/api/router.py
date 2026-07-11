@@ -1,6 +1,6 @@
 from typing import Any, Callable
 
-from app.api.phase3_app import ApiApplication
+from app.api.phase7_app import Phase7ApiApplication
 from app.core.errors import ApiError
 
 
@@ -12,11 +12,11 @@ def _payload(model: Any) -> dict[str, Any]:
     return dict(model)
 
 
-def build_openapi_contract(app: ApiApplication) -> dict[str, object]:
+def build_openapi_contract(app: Phase7ApiApplication) -> dict[str, object]:
     return app.openapi_contract()
 
 
-def create_fastapi_app(api: ApiApplication | None = None) -> Any:
+def create_fastapi_app(api: Phase7ApiApplication | None = None) -> Any:
     """Create the real FastAPI app when FastAPI is installed.
 
     The function is intentionally import-guarded so dependency-light tests still run in
@@ -34,13 +34,13 @@ def create_fastapi_app(api: ApiApplication | None = None) -> Any:
         from app.schemas.consent import ConsentGrantRequest
         from app.schemas.common import ErrorEnvelope
         from app.schemas.governance import ModelVersionRequest
-        from app.schemas.images import UploadRequest
+        from app.schemas.images import UploadCompleteRequest, UploadRequest
         from app.schemas.renders import RenderRequest
     except ModuleNotFoundError:
-        return api or ApiApplication()
+        return api or Phase7ApiApplication()
 
-    state = api or ApiApplication()
-    app = FastAPI(title="MelaninTruth AI API", version="0.3.7")
+    state = api or Phase7ApiApplication()
+    app = FastAPI(title="MelaninTruth AI API", version="0.7.0")
     cors_origins = [origin.strip() for origin in settings.cors_allowed_origins.split(",") if origin.strip()]
     app.add_middleware(
         CORSMiddleware,
@@ -153,7 +153,7 @@ def create_fastapi_app(api: ApiApplication | None = None) -> Any:
         return unwrap(state.upload_request(token, _payload(payload)))
 
     @app.post("/images/upload-complete", tags=["images"])
-    def upload_complete(payload: UploadRequest, token: str = Depends(bearer)) -> dict[str, Any]:
+    def upload_complete(payload: UploadCompleteRequest, token: str = Depends(bearer)) -> dict[str, Any]:
         return unwrap(state.upload_complete(token, _payload(payload)))
 
     @app.get("/images/{image_id}", tags=["images"])

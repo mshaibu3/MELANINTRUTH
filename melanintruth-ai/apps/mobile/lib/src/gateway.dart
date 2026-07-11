@@ -127,6 +127,47 @@ class LocalPreviewGateway implements MelaninTruthGateway {
   Future<void> requestDataDeletion({required AuthSession session}) async {}
 }
 
+class _UploadTicket {
+  const _UploadTicket({
+    required this.uploadId,
+    required this.uploadUri,
+    required this.expiresAt,
+    required this.idempotencyKey,
+  });
+
+  factory _UploadTicket.fromBody(Map<String, dynamic> body) {
+    final uploadId = body['upload_id']?.toString() ?? '';
+    final uploadUrl = body['upload_url']?.toString() ?? '';
+    final expiresAt = DateTime.tryParse(body['expires_at']?.toString() ?? '');
+    final idempotencyKey = body['idempotency_key']?.toString() ?? '';
+    final uploadUri = Uri.tryParse(uploadUrl);
+    if (uploadId.isEmpty ||
+        uploadUri == null ||
+        expiresAt == null ||
+        idempotencyKey.isEmpty) {
+      throw const GatewayException(
+          'The API returned an invalid upload ticket.');
+    }
+    if (uploadUri.scheme != 'https') {
+      throw const GatewayException('Signed image uploads must use HTTPS.');
+    }
+    return _UploadTicket(
+      uploadId: uploadId,
+      uploadUri: uploadUri,
+      expiresAt: expiresAt.toUtc(),
+      idempotencyKey: idempotencyKey,
+    );
+  }
+
+  final String uploadId;
+  final Uri uploadUri;
+  final DateTime expiresAt;
+  final String idempotencyKey;
+
+  bool expiresWithin(Duration window) =>
+      !expiresAt.isAfter(DateTime.now().toUtc().add(window));
+}
+
 class HttpMelaninTruthGateway implements MelaninTruthGateway {
   HttpMelaninTruthGateway({
     required String baseUrl,
@@ -338,21 +379,29 @@ class HttpMelaninTruthGateway implements MelaninTruthGateway {
       'checksum_sha256': capture.checksumSha256,
     };
 
-    final requestResponse = await _client.post(
-      Uri.parse('$baseUrl/images/upload-request'),
-      headers: _headers(session),
-      body: jsonEncode(metadata),
-    );
-    _expectSuccess(requestResponse);
-    final uploadUrl = _decode(requestResponse)['upload_url'].toString();
-    final uploadUri = Uri.parse(uploadUrl);
-    if (uploadUri.scheme != 'https') {
-      throw const GatewayException('Signed image uploads must use HTTPS.');
+    Future<_UploadTicket> requestUploadTicket() async {
+      final response = await _client.post(
+        Uri.parse('$baseUrl/images/upload-request'),
+        headers: _headers(session),
+        body: jsonEncode(metadata),
+      );
+      _expectSuccess(response);
+      return _UploadTicket.fromBody(_decode(response));
+    }
+
+    const expirySafetyWindow = Duration(seconds: 15);
+    var ticket = await requestUploadTicket();
+    if (ticket.expiresWithin(expirySafetyWindow)) {
+      ticket = await requestUploadTicket();
+    }
+    if (ticket.expiresWithin(expirySafetyWindow)) {
+      throw const GatewayException(
+          'The API returned an expired upload ticket.');
     }
 
     final uploadResponse = await _uploadRetryPolicy.execute(
       () => _client.put(
-        uploadUri,
+        ticket.uploadUri,
         headers: {
           'Content-Type': capture.contentType,
           'X-Content-SHA256': capture.checksumSha256,
@@ -375,7 +424,11 @@ class HttpMelaninTruthGateway implements MelaninTruthGateway {
     final completeResponse = await _client.post(
       Uri.parse('$baseUrl/images/upload-complete'),
       headers: _headers(session),
-      body: jsonEncode(metadata),
+      body: jsonEncode({
+        ...metadata,
+        'upload_id': ticket.uploadId,
+        'idempotency_key': ticket.idempotencyKey,
+      }),
     );
     _expectSuccess(completeResponse);
     final imageId = _decode(completeResponse)['image_id'].toString();

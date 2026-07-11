@@ -82,3 +82,24 @@ Phase 6 is accepted only when all of the following are true:
 * `mobile-native-ci` builds unsigned Android and iOS release artifacts and runs the consent/accessibility smoke test on an Android emulator.
 * Existing `ci` and `api-integration` workflows remain green on the same Phase 6 head commit.
 * Phase 6 does not claim store-release readiness until production signing, store entitlements, physical-device camera and permission testing, accessibility review, privacy declarations, and release governance approval are recorded.
+
+## Phase 7 release-candidate acceptance criteria — satisfied
+
+Phase 7 release-candidate controls were accepted on 2026-07-11 UTC for commit `654fad543509b381b624d13a80d6337c790b2153`.
+
+* Protected Android and iOS release workflows require the `mobile-release` environment and fail closed when signing credentials, production endpoints, or approval are absent.
+* The repository contains no committed signing key, keystore, provisioning profile, certificate, or store credential.
+* Upload tickets contain server-issued upload identifiers, expiry timestamps, and idempotency keys; completion is replay-safe and rejects expired, mismatched, or cross-user requests.
+* The mobile gateway refreshes an expired upload ticket before transmitting bytes and sends the server-issued idempotency key when completing an upload.
+* OpenAPI `0.7.0` documents the Phase 7 upload lifecycle and remains drift-free in dependency-enabled CI.
+* Apple privacy-manifest and Google Play data-safety declarations match the implemented data flows and are checked by release policy automation.
+* Physical-device evidence requirements are recorded separately and cannot be replaced by emulator results.
+* `mobile-native-ci` explicitly installs and boots an API 34 Android ATD, runs the consent and accessibility integration test, captures diagnostics, cleans up the device, and fails closed on any unsuccessful stage.
+* The complete same-commit acceptance matrix passed:
+  * `ci` run `29165595382`;
+  * `api-integration` run `29165595374`;
+  * `mobile-ci` run `29165595370`;
+  * `mobile-native-ci` run `29165595379`;
+  * `release-candidate` run `29165595371`.
+* Phase 7 acceptance means `release_candidate_controls_ready`; it does not mean the application is signed, store-submitted, approved, or publicly released.
+* Store release remains blocked until protected production signing credentials, authorised release approval, production endpoints and store assets, and required physical-device evidence are completed and recorded.

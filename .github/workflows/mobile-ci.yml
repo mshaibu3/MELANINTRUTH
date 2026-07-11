@@ -4,17 +4,63 @@ on:
   push:
     paths:
       - 'melanintruth-ai/apps/mobile/**'
+      - 'melanintruth-ai/services/api/app/**'
+      - 'melanintruth-ai/tests/integration/test_phase7_upload_contract.py'
+      - 'docs/api/openapi.json'
       - '.github/workflows/mobile-ci.yml'
   pull_request:
     paths:
       - 'melanintruth-ai/apps/mobile/**'
+      - 'melanintruth-ai/services/api/app/**'
+      - 'melanintruth-ai/tests/integration/test_phase7_upload_contract.py'
+      - 'docs/api/openapi.json'
       - '.github/workflows/mobile-ci.yml'
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
+  phase7-finalize:
+    if: >-
+      (github.ref == 'refs/heads/agent/phase-7-release-candidate' ||
+      github.head_ref == 'agent/phase-7-release-candidate') &&
+      hashFiles('melanintruth-ai/apps/mobile/tool/apply_phase7.py') != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/phase-7-release-candidate
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Apply Phase 7 production contracts
+        run: python melanintruth-ai/apps/mobile/tool/apply_phase7.py
+      - name: Generate and verify contracts
+        run: |
+          make api-install
+          make api-openapi
+          cd melanintruth-ai/apps/mobile
+          flutter pub get
+          dart format lib test integration_test
+          python tool/verify_release_candidate.py
+      - name: Run focused Phase 7 tests
+        run: |
+          PYTHONPATH=melanintruth-ai/services/api python -m pytest melanintruth-ai/tests/integration/test_phase7_upload_contract.py
+          cd melanintruth-ai/apps/mobile
+          flutter test test/gateway_test.dart test/phase7_gateway_test.dart
+      - name: Commit finalised Phase 7 contracts
+        run: |
+          rm -f .github/workflows/phase7-finalize.yml
+          rm -f melanintruth-ai/apps/mobile/tool/apply_phase7.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Finalize Phase 7 release-candidate contracts"
+          git push origin HEAD:agent/phase-7-release-candidate
+
   flutter:
     runs-on: ubuntu-latest
     defaults:

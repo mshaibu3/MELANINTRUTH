@@ -92,6 +92,11 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - name: Enable KVM group permissions
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -109,6 +114,10 @@ jobs:
           restore-keys: |
             android-smoke-${{ runner.os }}-
       - run: flutter pub get
+      - name: Initialise Android device diagnostics
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/native-smoke-artifacts"
+          printf 'Android device smoke runner initialised at %s\n' "$(date -u +%FT%TZ)" > "$GITHUB_WORKSPACE/native-smoke-artifacts/runner-status.txt"
       - name: Run consent and accessibility smoke test on Android
         id: smoke
         continue-on-error: true
@@ -117,14 +126,15 @@ jobs:
           api-level: 34
           arch: x86_64
           profile: pixel_6
+          cores: 2
+          ram-size: 2048M
+          emulator-boot-timeout: 900
           disable-animations: true
           emulator-options: >-
-            -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
-            -camera-back none -camera-front none
+            -no-window -no-snapshot -gpu swiftshader_indirect -noaudio
+            -no-boot-anim -camera-back none -camera-front none
           working-directory: melanintruth-ai/apps/mobile
           script: |
-            DIAGNOSTICS="$GITHUB_WORKSPACE/native-smoke-artifacts"
-            mkdir -p "$DIAGNOSTICS"
             bash -o pipefail -c '
               trap "adb devices -l > $GITHUB_WORKSPACE/native-smoke-artifacts/adb-devices.txt 2>&1 || true; adb logcat -d -t 10000 > $GITHUB_WORKSPACE/native-smoke-artifacts/adb-logcat.txt 2>&1 || true" EXIT
               timeout --foreground --signal=TERM --kill-after=30s 25m \

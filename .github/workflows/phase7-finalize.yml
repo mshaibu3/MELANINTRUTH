@@ -1,0 +1,286 @@
+name: phase7-finalize
+
+on:
+  push:
+    branches:
+      - agent/phase-7-release-candidate
+    paths:
+      - '.github/workflows/phase7-finalize.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Apply Phase 7 production patches
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          router = Path('melanintruth-ai/services/api/app/api/router.py')
+          text = router.read_text()
+          replacements = {
+              'from app.api.phase3_app import ApiApplication': 'from app.api.phase7_app import Phase7ApiApplication',
+              'def build_openapi_contract(app: ApiApplication) -> dict[str, object]:': 'def build_openapi_contract(app: Phase7ApiApplication) -> dict[str, object]:',
+              'def create_fastapi_app(api: ApiApplication | None = None) -> Any:': 'def create_fastapi_app(api: Phase7ApiApplication | None = None) -> Any:',
+              'from app.schemas.images import UploadRequest': 'from app.schemas.images import UploadCompleteRequest, UploadRequest',
+              'return api or ApiApplication()': 'return api or Phase7ApiApplication()',
+              'state = api or ApiApplication()': 'state = api or Phase7ApiApplication()',
+              'app = FastAPI(title="MelaninTruth AI API", version="0.3.7")': 'app = FastAPI(title="MelaninTruth AI API", version="0.7.0")',
+              'def upload_complete(payload: UploadRequest, token: str = Depends(bearer))': 'def upload_complete(payload: UploadCompleteRequest, token: str = Depends(bearer))',
+          }
+          for old, new in replacements.items():
+              if old not in text:
+                  raise SystemExit(f'missing router patch target: {old}')
+              text = text.replace(old, new)
+          router.write_text(text)
+
+          gateway = Path('melanintruth-ai/apps/mobile/lib/src/gateway.dart')
+          text = gateway.read_text()
+          marker = 'class HttpMelaninTruthGateway implements MelaninTruthGateway {'
+          ticket_class = '''class _UploadTicket {
+            const _UploadTicket({
+              required this.uploadId,
+              required this.uploadUri,
+              required this.expiresAt,
+              required this.idempotencyKey,
+            });
+
+            factory _UploadTicket.fromBody(Map<String, dynamic> body) {
+              final uploadId = body['upload_id']?.toString() ?? '';
+              final uploadUrl = body['upload_url']?.toString() ?? '';
+              final expiresAt = DateTime.tryParse(body['expires_at']?.toString() ?? '');
+              final idempotencyKey = body['idempotency_key']?.toString() ?? '';
+              final uploadUri = Uri.tryParse(uploadUrl);
+              if (uploadId.isEmpty ||
+                  uploadUri == null ||
+                  expiresAt == null ||
+                  idempotencyKey.isEmpty) {
+                throw const GatewayException('The API returned an invalid upload ticket.');
+              }
+              if (uploadUri.scheme != 'https') {
+                throw const GatewayException('Signed image uploads must use HTTPS.');
+              }
+              return _UploadTicket(
+                uploadId: uploadId,
+                uploadUri: uploadUri,
+                expiresAt: expiresAt.toUtc(),
+                idempotencyKey: idempotencyKey,
+              );
+            }
+
+            final String uploadId;
+            final Uri uploadUri;
+            final DateTime expiresAt;
+            final String idempotencyKey;
+
+            bool expiresWithin(Duration window) =>
+                !expiresAt.isAfter(DateTime.now().toUtc().add(window));
+          }
+
+          '''
+          if ticket_class.strip() not in text:
+              if marker not in text:
+                  raise SystemExit('missing gateway class marker')
+              text = text.replace(marker, ticket_class + marker)
+
+          old = '''    final requestResponse = await _client.post(
+              Uri.parse('$baseUrl/images/upload-request'),
+              headers: _headers(session),
+              body: jsonEncode(metadata),
+            );
+            _expectSuccess(requestResponse);
+            final uploadUrl = _decode(requestResponse)['upload_url'].toString();
+            final uploadUri = Uri.parse(uploadUrl);
+            if (uploadUri.scheme != 'https') {
+              throw const GatewayException('Signed image uploads must use HTTPS.');
+            }
+
+            final uploadResponse = await _uploadRetryPolicy.execute(
+              () => _client.put(
+                uploadUri,
+                headers: {
+                  'Content-Type': capture.contentType,
+                  'X-Content-SHA256': capture.checksumSha256,
+                },
+                body: capture.bytes,
+              ),
+              onAttempt: (attempt) {
+                _telemetry.record(
+                  TelemetryRecord(TelemetryEvent.uploadAttempted, {'attempt': attempt}),
+                );
+              },
+            );
+            _expectSuccess(uploadResponse);
+            _telemetry.record(
+              TelemetryRecord(TelemetryEvent.uploadCompleted, const {
+                'status_class': 'success',
+              }),
+            );
+
+            final completeResponse = await _client.post(
+              Uri.parse('$baseUrl/images/upload-complete'),
+              headers: _headers(session),
+              body: jsonEncode(metadata),
+            );
+            _expectSuccess(completeResponse);
+            final imageId = _decode(completeResponse)['image_id'].toString();
+          '''
+          new = '''    Future<_UploadTicket> requestUploadTicket() async {
+              final response = await _client.post(
+                Uri.parse('$baseUrl/images/upload-request'),
+                headers: _headers(session),
+                body: jsonEncode(metadata),
+              );
+              _expectSuccess(response);
+              return _UploadTicket.fromBody(_decode(response));
+            }
+
+            const expirySafetyWindow = Duration(seconds: 15);
+            var ticket = await requestUploadTicket();
+            if (ticket.expiresWithin(expirySafetyWindow)) {
+              ticket = await requestUploadTicket();
+            }
+            if (ticket.expiresWithin(expirySafetyWindow)) {
+              throw const GatewayException(
+                'The API returned an expired upload ticket.',
+              );
+            }
+
+            final uploadResponse = await _uploadRetryPolicy.execute(
+              () => _client.put(
+                ticket.uploadUri,
+                headers: {
+                  'Content-Type': capture.contentType,
+                  'X-Content-SHA256': capture.checksumSha256,
+                },
+                body: capture.bytes,
+              ),
+              onAttempt: (attempt) {
+                _telemetry.record(
+                  TelemetryRecord(TelemetryEvent.uploadAttempted, {'attempt': attempt}),
+                );
+              },
+            );
+            _expectSuccess(uploadResponse);
+            _telemetry.record(
+              TelemetryRecord(TelemetryEvent.uploadCompleted, const {
+                'status_class': 'success',
+              }),
+            );
+
+            final completeResponse = await _client.post(
+              Uri.parse('$baseUrl/images/upload-complete'),
+              headers: _headers(session),
+              body: jsonEncode({
+                ...metadata,
+                'upload_id': ticket.uploadId,
+                'idempotency_key': ticket.idempotencyKey,
+              }),
+            );
+            _expectSuccess(completeResponse);
+            final imageId = _decode(completeResponse)['image_id'].toString();
+          '''
+          if old not in text:
+              raise SystemExit('missing gateway upload lifecycle patch target')
+          text = text.replace(old, new)
+          gateway.write_text(text)
+
+          test = Path('melanintruth-ai/apps/mobile/test/gateway_test.dart')
+          text = test.read_text()
+          old_response = """            jsonEncode({'upload_url': 'https://uploads.example.com/object'}),
+                  201,
+                );"""
+          new_response = """            jsonEncode({
+                    'upload_id': 'upload-1',
+                    'upload_url': 'https://uploads.example.com/object',
+                    'checksum_sha256': capture.checksumSha256,
+                    'expires_at': '2099-01-01T00:00:00Z',
+                    'idempotency_key': 'server-key-1-abcdefghijklmnop',
+                  }),
+                  201,
+                );"""
+          if old_response not in text:
+              raise SystemExit('missing gateway test upload response target')
+          text = text.replace(old_response, new_response)
+          old_complete = """        if (request.url.path == '/images/upload-complete') {
+                  return http.Response(
+                    jsonEncode({'image_id': 'image-1', 'status': 'uploaded'}),
+                    201,
+                  );
+                }"""
+          new_complete = """        if (request.url.path == '/images/upload-complete') {
+                  final body = jsonDecode(request.body) as Map<String, dynamic>;
+                  expect(body['upload_id'], 'upload-1');
+                  expect(body['idempotency_key'], 'server-key-1-abcdefghijklmnop');
+                  return http.Response(
+                    jsonEncode({'image_id': 'image-1', 'status': 'uploaded'}),
+                    201,
+                  );
+                }"""
+          if old_complete not in text:
+              raise SystemExit('missing gateway test completion target')
+          test.write_text(text.replace(old_complete, new_complete))
+
+          project = Path('melanintruth-ai/apps/mobile/ios/Runner.xcodeproj/project.pbxproj')
+          text = project.read_text()
+          build_id = 'F70000000000000000000001'
+          file_id = 'F70000000000000000000002'
+          if 'PrivacyInfo.xcprivacy in Resources' not in text:
+              text = text.replace(
+                  '/* End PBXBuildFile section */',
+                  f'\t\t{build_id} /* PrivacyInfo.xcprivacy in Resources */ = {{isa = PBXBuildFile; fileRef = {file_id} /* PrivacyInfo.xcprivacy */; }};\n/* End PBXBuildFile section */',
+              )
+              text = text.replace(
+                  '/* End PBXFileReference section */',
+                  f'\t\t{file_id} /* PrivacyInfo.xcprivacy */ = {{isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; }};\n/* End PBXFileReference section */',
+              )
+              text, group_count = re.subn(
+                  r'(\s+[A-F0-9]{24} /\* Info\.plist \*/,\n)',
+                  r'\1\t\t\t\t' + file_id + ' /* PrivacyInfo.xcprivacy */,\n',
+                  text,
+                  count=1,
+              )
+              if group_count != 1:
+                  raise SystemExit('failed to add privacy manifest to Runner group')
+              text, resource_count = re.subn(
+                  r'(isa = PBXResourcesBuildPhase;\n\s+buildActionMask = 2147483647;\n\s+files = \(\n)',
+                  r'\1\t\t\t\t' + build_id + ' /* PrivacyInfo.xcprivacy in Resources */,\n',
+                  text,
+                  count=1,
+              )
+              if resource_count != 1:
+                  raise SystemExit('failed to add privacy manifest to resources')
+          project.write_text(text)
+          PY
+      - name: Install and generate contracts
+        run: |
+          make api-install
+          make api-openapi
+          cd melanintruth-ai/apps/mobile
+          flutter pub get
+          dart format lib test integration_test
+          python tool/verify_release_candidate.py
+      - name: Run focused Phase 7 tests
+        run: |
+          PYTHONPATH=melanintruth-ai/services/api python -m pytest melanintruth-ai/tests/integration/test_phase7_upload_contract.py
+          cd melanintruth-ai/apps/mobile
+          flutter test test/gateway_test.dart test/phase7_gateway_test.dart
+      - name: Commit finalised Phase 7 contracts
+        run: |
+          rm .github/workflows/phase7-finalize.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Finalize Phase 7 release-candidate contracts"
+          git push origin HEAD:agent/phase-7-release-candidate

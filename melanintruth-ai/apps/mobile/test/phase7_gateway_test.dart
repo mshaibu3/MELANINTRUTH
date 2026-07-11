@@ -20,7 +20,8 @@ class _CaptureSource implements CaptureSource {
 }
 
 void main() {
-  test('refreshes an expired upload ticket before transmitting bytes', () async {
+  test('refreshes an expired upload ticket before transmitting bytes',
+      () async {
     final capture = CapturedImage(
       bytes: Uint8List.fromList(<int>[1, 2, 3]),
       contentType: 'image/jpeg',

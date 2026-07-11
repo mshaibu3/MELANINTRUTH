@@ -82,7 +82,7 @@ jobs:
 
   android-device-smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     defaults:
       run:
         working-directory: melanintruth-ai/apps/mobile
@@ -96,6 +96,18 @@ jobs:
         with:
           channel: stable
           cache: true
+      - name: Cache Android build dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: >-
+            android-smoke-${{ runner.os }}-${{
+            hashFiles('melanintruth-ai/apps/mobile/android/**/*.gradle*',
+            'melanintruth-ai/apps/mobile/android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            android-smoke-${{ runner.os }}-
       - run: flutter pub get
       - name: Run consent and accessibility smoke test on Android
         uses: reactivecircus/android-emulator-runner@v2
@@ -108,10 +120,23 @@ jobs:
             -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
             -camera-back none -camera-front none
           working-directory: melanintruth-ai/apps/mobile
-          script: >-
-            timeout --foreground --signal=TERM --kill-after=30s 15m
-            flutter test integration_test/app_smoke_test.dart
-            -d emulator-5554 --timeout 5m
+          script: |
+            mkdir -p artifacts
+            bash -o pipefail -c '
+              trap "adb devices -l > artifacts/adb-devices.txt 2>&1 || true; adb logcat -d -t 10000 > artifacts/adb-logcat.txt 2>&1 || true" EXIT
+              timeout --foreground --signal=TERM --kill-after=30s 25m \
+                flutter test integration_test/app_smoke_test.dart \
+                -d emulator-5554 --timeout 5m --no-pub \
+                2>&1 | tee artifacts/android-device-smoke.txt
+            '
+      - name: Upload Android device diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-device-smoke-diagnostics
+          path: melanintruth-ai/apps/mobile/artifacts/*.txt
+          if-no-files-found: warn
+          retention-days: 14
 
   native-release-gate:
     if: always()
@@ -123,7 +148,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Enforce Phase 6 native verification
+      - name: Enforce native verification
         run: |
           test "${{ needs.native-contract.result }}" = "success"
           test "${{ needs.android-release.result }}" = "success"

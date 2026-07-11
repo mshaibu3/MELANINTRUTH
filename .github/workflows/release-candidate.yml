@@ -1,0 +1,257 @@
+name: release-candidate
+
+on:
+  push:
+    paths:
+      - '.github/workflows/release-candidate.yml'
+      - 'docs/mobile/**'
+      - 'melanintruth-ai/apps/mobile/**'
+      - 'melanintruth-ai/services/api/app/api/phase7_app.py'
+      - 'melanintruth-ai/services/api/app/backend/image_service.py'
+      - 'melanintruth-ai/services/api/app/schemas/images.py'
+  pull_request:
+    paths:
+      - '.github/workflows/release-candidate.yml'
+      - 'docs/mobile/**'
+      - 'melanintruth-ai/apps/mobile/**'
+      - 'melanintruth-ai/services/api/app/api/phase7_app.py'
+      - 'melanintruth-ai/services/api/app/backend/image_service.py'
+      - 'melanintruth-ai/services/api/app/schemas/images.py'
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Signed release-candidate platform
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - android
+          - ios
+      release_version:
+        description: Semantic release version, for example 1.0.0
+        required: true
+        type: string
+      production_api_base_url:
+        description: HTTPS production API base URL
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-candidate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release-candidate-policy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify Phase 7 release policy
+        working-directory: melanintruth-ai/apps/mobile
+        run: python tool/verify_release_candidate.py
+
+  signed-android:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      (inputs.platform == 'all' || inputs.platform == 'android')
+    needs: release-candidate-policy
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment: mobile-release
+    defaults:
+      run:
+        working-directory: melanintruth-ai/apps/mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Require protected Android signing credentials
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          test -n "$ANDROID_KEYSTORE_BASE64"
+          test -n "$ANDROID_KEYSTORE_PASSWORD"
+          test -n "$ANDROID_KEY_ALIAS"
+          test -n "$ANDROID_KEY_PASSWORD"
+          test "${{ inputs.production_api_base_url }}" != "https://api.example.invalid"
+          python - <<'PY'
+          from urllib.parse import urlparse
+          value = "${{ inputs.production_api_base_url }}"
+          parsed = urlparse(value)
+          if parsed.scheme != "https" or not parsed.netloc:
+              raise SystemExit("production_api_base_url must be a valid HTTPS URL")
+          PY
+      - name: Install protected Android signing material
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/release-keystore.jks
+          cat > android/key.properties <<EOF
+          storePassword=$ANDROID_KEYSTORE_PASSWORD
+          keyPassword=$ANDROID_KEY_PASSWORD
+          keyAlias=$ANDROID_KEY_ALIAS
+          storeFile=release-keystore.jks
+          EOF
+          chmod 600 android/key.properties android/app/release-keystore.jks
+      - run: flutter pub get
+      - name: Build signed Android release candidate
+        run: >-
+          flutter build appbundle --release
+          --build-name '${{ inputs.release_version }}'
+          --build-number '${{ github.run_number }}'
+          --dart-define=MELANINTRUTH_API_BASE_URL='${{ inputs.production_api_base_url }}'
+      - name: Verify Android signature
+        run: jarsigner -verify -strict -certs build/app/outputs/bundle/release/app-release.aab
+      - uses: actions/upload-artifact@v4
+        with:
+          name: melanintruth-android-${{ inputs.release_version }}-${{ github.sha }}
+          path: melanintruth-ai/apps/mobile/build/app/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 14
+      - name: Remove signing material
+        if: always()
+        run: rm -f android/key.properties android/app/release-keystore.jks
+
+  signed-ios:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      (inputs.platform == 'all' || inputs.platform == 'ios')
+    needs: release-candidate-policy
+    runs-on: macos-14
+    timeout-minutes: 45
+    environment: mobile-release
+    defaults:
+      run:
+        working-directory: melanintruth-ai/apps/mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Require protected iOS signing credentials
+        env:
+          IOS_CERTIFICATE_P12_BASE64: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+          IOS_KEYCHAIN_PASSWORD: ${{ secrets.IOS_KEYCHAIN_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          test -n "$IOS_CERTIFICATE_P12_BASE64"
+          test -n "$IOS_CERTIFICATE_PASSWORD"
+          test -n "$IOS_PROVISIONING_PROFILE_BASE64"
+          test -n "$IOS_KEYCHAIN_PASSWORD"
+          test -n "$APPLE_TEAM_ID"
+          test "${{ inputs.production_api_base_url }}" != "https://api.example.invalid"
+          python - <<'PY'
+          from urllib.parse import urlparse
+          value = "${{ inputs.production_api_base_url }}"
+          parsed = urlparse(value)
+          if parsed.scheme != "https" or not parsed.netloc:
+              raise SystemExit("production_api_base_url must be a valid HTTPS URL")
+          PY
+      - name: Install protected iOS signing material
+        env:
+          IOS_CERTIFICATE_P12_BASE64: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+          IOS_KEYCHAIN_PASSWORD: ${{ secrets.IOS_KEYCHAIN_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          CERTIFICATE_PATH="$RUNNER_TEMP/distribution.p12"
+          PROFILE_PATH="$RUNNER_TEMP/profile.mobileprovision"
+          KEYCHAIN_PATH="$RUNNER_TEMP/melanintruth-signing.keychain-db"
+          printf '%s' "$IOS_CERTIFICATE_P12_BASE64" | base64 --decode > "$CERTIFICATE_PATH"
+          printf '%s' "$IOS_PROVISIONING_PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH"
+          security create-keychain -p "$IOS_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$IOS_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERTIFICATE_PATH" -P "$IOS_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$IOS_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security cms -D -i "$PROFILE_PATH" > "$RUNNER_TEMP/profile.plist"
+          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c 'Print UUID' "$RUNNER_TEMP/profile.plist")
+          PROFILE_NAME=$(/usr/libexec/PlistBuddy -c 'Print Name' "$RUNNER_TEMP/profile.plist")
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          cp "$PROFILE_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
+          python - <<PY
+          from pathlib import Path
+          project = Path('ios/Runner.xcodeproj/project.pbxproj')
+          text = project.read_text()
+          marker = 'PRODUCT_BUNDLE_IDENTIFIER = com.hakilixlabs.melanintruth;'
+          replacement = marker + '\n\t\t\t\tDEVELOPMENT_TEAM = $APPLE_TEAM_ID;\n\t\t\t\tCODE_SIGN_STYLE = Manual;\n\t\t\t\tCODE_SIGN_IDENTITY = "Apple Distribution";\n\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = "$PROFILE_NAME";'
+          text = text.replace(marker, replacement)
+          project.write_text(text)
+          PY
+          cat > ios/ExportOptions.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>teamID</key><string>$APPLE_TEAM_ID</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>provisioningProfiles</key>
+            <dict><key>com.hakilixlabs.melanintruth</key><string>$PROFILE_NAME</string></dict>
+            <key>stripSwiftSymbols</key><true/>
+            <key>uploadSymbols</key><true/>
+          </dict>
+          </plist>
+          EOF
+      - run: flutter pub get
+      - name: Build signed iOS release candidate
+        run: >-
+          flutter build ipa --release
+          --build-name '${{ inputs.release_version }}'
+          --build-number '${{ github.run_number }}'
+          --export-options-plist=ios/ExportOptions.plist
+          --dart-define=MELANINTRUTH_API_BASE_URL='${{ inputs.production_api_base_url }}'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: melanintruth-ios-${{ inputs.release_version }}-${{ github.sha }}
+          path: melanintruth-ai/apps/mobile/build/ios/ipa/*.ipa
+          if-no-files-found: error
+          retention-days: 14
+      - name: Remove signing material
+        if: always()
+        env:
+          IOS_KEYCHAIN_PASSWORD: ${{ secrets.IOS_KEYCHAIN_PASSWORD }}
+        run: |
+          rm -f ios/ExportOptions.plist
+          security delete-keychain "$RUNNER_TEMP/melanintruth-signing.keychain-db" || true
+          rm -rf "$HOME/Library/MobileDevice/Provisioning Profiles"
+
+  release-candidate-gate:
+    if: always() && github.event_name == 'workflow_dispatch'
+    needs:
+      - release-candidate-policy
+      - signed-android
+      - signed-ios
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Enforce selected signed release candidate
+        run: |
+          test "${{ needs.release-candidate-policy.result }}" = "success"
+          if [ "${{ inputs.platform }}" = "android" ] || [ "${{ inputs.platform }}" = "all" ]; then
+            test "${{ needs.signed-android.result }}" = "success"
+          fi
+          if [ "${{ inputs.platform }}" = "ios" ] || [ "${{ inputs.platform }}" = "all" ]; then
+            test "${{ needs.signed-ios.result }}" = "success"
+          fi

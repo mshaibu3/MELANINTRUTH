@@ -119,18 +119,46 @@ jobs:
           printf 'Android device smoke runner initialised at %s\n' \
             "$(date -u +%FT%TZ)" > "$DIAGNOSTICS_DIR/runner-status.txt"
           flutter doctor -v > "$DIAGNOSTICS_DIR/flutter-doctor.txt" 2>&1 || true
-      - name: Install and configure Android ATD
-        id: prepare
+      - name: Resolve Android SDK tools
+        id: sdk-tools
         continue-on-error: true
         run: |
           set -o pipefail
           {
-            yes | sdkmanager --licenses >/dev/null || true
-            sdkmanager --install \
+            printf 'ANDROID_HOME=%s\nANDROID_SDK_ROOT=%s\n' \
+              "${ANDROID_HOME:-}" "${ANDROID_SDK_ROOT:-}"
+            find "$ANDROID_SDK_ROOT" -maxdepth 5 -type f \
+              \( -name sdkmanager -o -name avdmanager -o -name emulator \) \
+              -print | sort
+            SDKMANAGER_PATH="$(find "$ANDROID_SDK_ROOT/cmdline-tools" \
+              -type f -name sdkmanager -perm -111 | sort -V | tail -n 1)"
+            AVDMANAGER_PATH="$(find "$ANDROID_SDK_ROOT/cmdline-tools" \
+              -type f -name avdmanager -perm -111 | sort -V | tail -n 1)"
+            EMULATOR_PATH="$ANDROID_SDK_ROOT/emulator/emulator"
+            test -x "$SDKMANAGER_PATH"
+            test -x "$AVDMANAGER_PATH"
+            test -x "$EMULATOR_PATH"
+            printf 'SDKMANAGER=%s\nAVDMANAGER=%s\nEMULATOR=%s\n' \
+              "$SDKMANAGER_PATH" "$AVDMANAGER_PATH" "$EMULATOR_PATH" \
+              >> "$GITHUB_ENV"
+            printf '%s\n%s\n%s\n' \
+              "$(dirname "$SDKMANAGER_PATH")" \
+              "$ANDROID_SDK_ROOT/platform-tools" \
+              "$ANDROID_SDK_ROOT/emulator" >> "$GITHUB_PATH"
+          } 2>&1 | tee "$DIAGNOSTICS_DIR/sdk-tools.txt"
+      - name: Install and configure Android ATD
+        id: prepare
+        if: steps.sdk-tools.outcome == 'success'
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          {
+            yes | "$SDKMANAGER" --licenses >/dev/null || true
+            "$SDKMANAGER" --install \
               "platform-tools" \
               "emulator" \
               "$ANDROID_SYSTEM_IMAGE"
-            echo no | avdmanager create avd \
+            echo no | "$AVDMANAGER" create avd \
               --force \
               --name "$AVD_NAME" \
               --package "$ANDROID_SYSTEM_IMAGE"
@@ -141,7 +169,7 @@ jobs:
           hw.gpu.mode=swiftshader_indirect
           disk.dataPartition.size=2048M
           EOF
-            avdmanager list avd
+            "$AVDMANAGER" list avd
           } 2>&1 | tee "$DIAGNOSTICS_DIR/avd-prepare.txt"
       - name: Boot Android ATD without hardware acceleration
         id: boot
@@ -150,7 +178,7 @@ jobs:
         run: |
           set -o pipefail
           {
-            nohup emulator \
+            nohup "$EMULATOR" \
               -avd "$AVD_NAME" \
               -accel off \
               -no-window \
@@ -206,6 +234,7 @@ jobs:
       - name: Enforce Android device smoke result
         if: always()
         run: |
+          test "${{ steps.sdk-tools.outcome }}" = "success"
           test "${{ steps.prepare.outcome }}" = "success"
           test "${{ steps.boot.outcome }}" = "success"
           test "${{ steps.smoke.outcome }}" = "success"

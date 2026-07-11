@@ -67,7 +67,7 @@ def verify_native_workflow() -> None:
         "ADB diagnostics must only run after a successful emulator boot.",
     )
     require(
-        "github.event.pull_request.number || github.ref" in workflow,
+        "group: mobile-native-ci-${{ github.ref }}" in workflow,
         "Native CI must cancel stale runs for the same PR or branch.",
     )
 

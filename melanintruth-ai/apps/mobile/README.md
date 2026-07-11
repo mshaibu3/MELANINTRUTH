@@ -29,7 +29,7 @@ flutter test
 python tool/verify_native_config.py
 ```
 
-The `mobile-native-ci` workflow also builds unsigned Android and iOS release artifacts and runs the consent/accessibility smoke test on an Android emulator.
+The `mobile-native-ci` workflow also builds unsigned Android and iOS release artifacts and runs the consent/accessibility smoke test on an Android emulator. Native jobs have explicit time limits, and newer runs cancel older runs for the same branch so an emulator fault cannot occupy a runner indefinitely.
 
 ## Android signing
 

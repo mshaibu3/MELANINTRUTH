@@ -53,9 +53,25 @@ Phase 6 closes the generated-platform and native-build gap while retaining a str
 
 Phase 6 proves reproducible unsigned native builds and emulator-level acceptance. It does not claim App Store or Play Store readiness until production signing credentials, store entitlements, final icons/launch assets, environment-specific endpoints, physical camera and permission-denial tests, accessibility review on real devices, privacy declarations, and release-candidate approval are completed and recorded.
 
-## Phase 7 candidates
+## Phase 7 — release-candidate controls completed
 
-* Add signed release-candidate workflows backed by protected environments and short-lived credentials.
-* Run physical-device or managed device-farm tests for camera capture, permission denial, cancellation, offline recovery, consent withdrawal, export, and deletion.
-* Add server-issued upload expiry and idempotency contracts.
-* Complete store privacy manifests, data-safety declarations, screenshots, and release governance evidence.
+On 2026-07-11 UTC, commit `654fad543509b381b624d13a80d6337c790b2153` passed the complete Phase 7 acceptance matrix:
+
+* `ci` run `29165595382`;
+* `api-integration` run `29165595374`;
+* `mobile-ci` run `29165595370`;
+* `mobile-native-ci` run `29165595379`;
+* `release-candidate` run `29165595371`.
+
+Phase 7 delivered:
+
+* protected Android and iOS signing workflows using the `mobile-release` environment and fail-closed credential checks;
+* server-issued upload identifiers, expiry timestamps, idempotency keys, replay-safe completion, and mobile recovery from expired upload tickets;
+* OpenAPI `0.7.0` coverage and updated API integration tests for the release-candidate upload contract;
+* an Apple privacy manifest, Google Play data-safety declaration, physical-device evidence matrix, and release-governance policy verification;
+* reproducible unsigned Android and iOS release artifacts;
+* a deterministic API 34 Android ATD smoke lane that installs and boots its device explicitly, runs consent and accessibility integration coverage, captures diagnostics, and fails closed.
+
+## Phase 7 release boundary
+
+Phase 7 accepts the repository's release-candidate controls. It does not claim that MELANINTRUTH has been signed, submitted, approved, or released through the Apple App Store or Google Play. Store release remains blocked until production signing credentials are configured in the protected environment, an authorised release approval is recorded, environment-specific production endpoints and store assets are finalised, and the required physical-device evidence is completed and approved.

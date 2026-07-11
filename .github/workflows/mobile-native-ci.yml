@@ -2,6 +2,8 @@ name: mobile-native-ci
 
 on:
   push:
+    branches:
+      - main
     paths:
       - 'melanintruth-ai/apps/mobile/**'
       - '.github/workflows/mobile-native-ci.yml'
@@ -15,7 +17,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: mobile-native-ci-${{ github.ref }}-${{ github.sha }}
+  group: mobile-native-ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -85,8 +87,8 @@ jobs:
     timeout-minutes: 50
     env:
       AVD_NAME: melanintruth_api34_atd
+      ANDROID_AVD_HOME: ${{ runner.temp }}/android-avd
       ANDROID_SYSTEM_IMAGE: system-images;android-34;aosp_atd;x86_64
-      ANDROID_AVD_HOME: ${{ github.workspace }}/.android/avd
       DIAGNOSTICS_DIR: ${{ github.workspace }}/native-smoke-artifacts
     defaults:
       run:
@@ -152,6 +154,10 @@ jobs:
           set -o pipefail
           {
             mkdir -p "$ANDROID_AVD_HOME"
+            AVD_PATH="$ANDROID_AVD_HOME/$AVD_NAME.avd"
+            AVD_CONFIG="$AVD_PATH/config.ini"
+            printf 'AVD_PATH=%s\nAVD_CONFIG=%s\n' \
+              "$AVD_PATH" "$AVD_CONFIG" >> "$GITHUB_ENV"
             yes | "$SDKMANAGER" --licenses >/dev/null || true
             "$SDKMANAGER" --install \
               "platform-tools" \
@@ -162,10 +168,9 @@ jobs:
               --force \
               --name "$AVD_NAME" \
               --package "$ANDROID_SYSTEM_IMAGE" \
-              --device pixel_6
-            AVD_CONFIG="$(find "$ANDROID_AVD_HOME" -type f \
-              -path "*/$AVD_NAME.avd/config.ini" -print -quit)"
-            test -n "$AVD_CONFIG"
+              --device pixel_6 \
+              --path "$AVD_PATH"
+            test -f "$AVD_CONFIG"
             cat >> "$AVD_CONFIG" <<'EOF'
           hw.cpu.ncore=2
           hw.ramSize=2048
@@ -173,7 +178,6 @@ jobs:
           hw.gpu.mode=swiftshader_indirect
           disk.dataPartition.size=2048M
           EOF
-            printf 'AVD_CONFIG=%s\n' "$AVD_CONFIG" >> "$GITHUB_ENV"
             "$AVDMANAGER" list avd
           } 2>&1 | tee "$DIAGNOSTICS_DIR/avd-prepare.txt"
       - name: Boot Android ATD without hardware acceleration
@@ -215,9 +219,18 @@ jobs:
       - name: Capture Android device diagnostics
         if: always()
         run: |
-          timeout 10s adb devices -l > "$DIAGNOSTICS_DIR/adb-devices.txt" 2>&1 || true
-          timeout 10s adb shell getprop > "$DIAGNOSTICS_DIR/adb-getprop.txt" 2>&1 || true
-          timeout 15s adb logcat -d -t 15000 > "$DIAGNOSTICS_DIR/adb-logcat.txt" 2>&1 || true
+          mkdir -p "$DIAGNOSTICS_DIR"
+          if [ "${{ steps.boot.outcome }}" = "success" ]; then
+            timeout --foreground --signal=TERM --kill-after=2s 10s \
+              adb devices -l > "$DIAGNOSTICS_DIR/adb-devices.txt" 2>&1 || true
+            timeout --foreground --signal=TERM --kill-after=2s 10s \
+              adb shell getprop > "$DIAGNOSTICS_DIR/adb-getprop.txt" 2>&1 || true
+            timeout --foreground --signal=TERM --kill-after=2s 15s \
+              adb logcat -d -t 15000 > "$DIAGNOSTICS_DIR/adb-logcat.txt" 2>&1 || true
+          else
+            printf 'ADB diagnostics skipped because emulator boot outcome was %s.\n' \
+              "${{ steps.boot.outcome }}" > "$DIAGNOSTICS_DIR/adb-skipped.txt"
+          fi
           ps auxww > "$DIAGNOSTICS_DIR/processes.txt" 2>&1 || true
           if [ -n "${AVD_CONFIG:-}" ]; then
             cp "$AVD_CONFIG" "$DIAGNOSTICS_DIR/avd-config.ini.txt" 2>/dev/null || true
@@ -233,7 +246,10 @@ jobs:
       - name: Stop Android ATD
         if: always()
         run: |
-          timeout 10s adb emu kill >/dev/null 2>&1 || true
+          if [ "${{ steps.boot.outcome }}" = "success" ]; then
+            timeout --foreground --signal=TERM --kill-after=2s 10s \
+              adb emu kill >/dev/null 2>&1 || true
+          fi
           if [ -f "$DIAGNOSTICS_DIR/emulator.pid" ]; then
             kill "$(cat "$DIAGNOSTICS_DIR/emulator.pid")" >/dev/null 2>&1 || true
           fi

@@ -57,10 +57,26 @@ def verify_release_gateway() -> None:
     require("Release builds require an HTTPS" in environment, "Release HTTPS enforcement is missing.")
 
 
+def verify_native_workflow() -> None:
+    workflow = (ROOT.parents[2] / ".github/workflows/mobile-native-ci.yml").read_text()
+    require("ANDROID_AVD_HOME: ${{ runner.temp }}/android-avd" in workflow, "Android AVD home must be explicit.")
+    require('--path "$AVD_PATH"' in workflow, "Android AVD creation must use an explicit path.")
+    require('test -f "$AVD_CONFIG"' in workflow, "Android AVD configuration must be verified.")
+    require(
+        'if [ "${{ steps.boot.outcome }}" = "success" ]; then' in workflow,
+        "ADB diagnostics must only run after a successful emulator boot.",
+    )
+    require(
+        "github.event.pull_request.number || github.ref" in workflow,
+        "Native CI must cancel stale runs for the same PR or branch.",
+    )
+
+
 def main() -> None:
     verify_android()
     verify_ios()
     verify_release_gateway()
+    verify_native_workflow()
     print("Native release configuration verified.")
 
 

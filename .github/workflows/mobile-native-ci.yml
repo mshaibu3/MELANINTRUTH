@@ -14,9 +14,14 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: mobile-native-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   native-contract:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: melanintruth-ai/apps/mobile
@@ -27,6 +32,7 @@ jobs:
 
   android-release:
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     defaults:
       run:
         working-directory: melanintruth-ai/apps/mobile
@@ -53,6 +59,7 @@ jobs:
 
   ios-release:
     runs-on: macos-14
+    timeout-minutes: 35
     defaults:
       run:
         working-directory: melanintruth-ai/apps/mobile
@@ -75,6 +82,7 @@ jobs:
 
   android-device-smoke:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: melanintruth-ai/apps/mobile
@@ -100,7 +108,10 @@ jobs:
             -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
             -camera-back none -camera-front none
           working-directory: melanintruth-ai/apps/mobile
-          script: flutter test integration_test/app_smoke_test.dart -d emulator-5554
+          script: >-
+            timeout --foreground --signal=TERM --kill-after=30s 15m
+            flutter test integration_test/app_smoke_test.dart
+            -d emulator-5554 --timeout 5m
 
   native-release-gate:
     if: always()
@@ -110,6 +121,7 @@ jobs:
       - ios-release
       - android-device-smoke
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Enforce Phase 6 native verification
         run: |

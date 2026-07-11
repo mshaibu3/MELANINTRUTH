@@ -128,19 +128,16 @@ jobs:
             printf 'ANDROID_HOME=%s\nANDROID_SDK_ROOT=%s\n' \
               "${ANDROID_HOME:-}" "${ANDROID_SDK_ROOT:-}"
             find "$ANDROID_SDK_ROOT" -maxdepth 5 -type f \
-              \( -name sdkmanager -o -name avdmanager -o -name emulator \) \
+              \( -name sdkmanager -o -name avdmanager \) \
               -print | sort
             SDKMANAGER_PATH="$(find "$ANDROID_SDK_ROOT/cmdline-tools" \
               -type f -name sdkmanager -perm -111 | sort -V | tail -n 1)"
             AVDMANAGER_PATH="$(find "$ANDROID_SDK_ROOT/cmdline-tools" \
               -type f -name avdmanager -perm -111 | sort -V | tail -n 1)"
-            EMULATOR_PATH="$ANDROID_SDK_ROOT/emulator/emulator"
             test -x "$SDKMANAGER_PATH"
             test -x "$AVDMANAGER_PATH"
-            test -x "$EMULATOR_PATH"
-            printf 'SDKMANAGER=%s\nAVDMANAGER=%s\nEMULATOR=%s\n' \
-              "$SDKMANAGER_PATH" "$AVDMANAGER_PATH" "$EMULATOR_PATH" \
-              >> "$GITHUB_ENV"
+            printf 'SDKMANAGER=%s\nAVDMANAGER=%s\n' \
+              "$SDKMANAGER_PATH" "$AVDMANAGER_PATH" >> "$GITHUB_ENV"
             printf '%s\n%s\n%s\n' \
               "$(dirname "$SDKMANAGER_PATH")" \
               "$ANDROID_SDK_ROOT/platform-tools" \
@@ -158,6 +155,7 @@ jobs:
               "platform-tools" \
               "emulator" \
               "$ANDROID_SYSTEM_IMAGE"
+            test -x "$ANDROID_SDK_ROOT/emulator/emulator"
             echo no | "$AVDMANAGER" create avd \
               --force \
               --name "$AVD_NAME" \
@@ -178,7 +176,7 @@ jobs:
         run: |
           set -o pipefail
           {
-            nohup "$EMULATOR" \
+            nohup "$ANDROID_SDK_ROOT/emulator/emulator" \
               -avd "$AVD_NAME" \
               -accel off \
               -no-window \

@@ -59,7 +59,10 @@ def verify_release_gateway() -> None:
 
 def verify_native_workflow() -> None:
     workflow = (ROOT.parents[2] / ".github/workflows/mobile-native-ci.yml").read_text()
-    require("ANDROID_AVD_HOME: ${{ runner.temp }}/android-avd" in workflow, "Android AVD home must be explicit.")
+    require(
+        "ANDROID_AVD_HOME: ${{ github.workspace }}/.android/avd" in workflow,
+        "Android AVD home must be explicit and use an allowed job context.",
+    )
     require('--path "$AVD_PATH"' in workflow, "Android AVD creation must use an explicit path.")
     require('test -f "$AVD_CONFIG"' in workflow, "Android AVD configuration must be verified.")
     require(

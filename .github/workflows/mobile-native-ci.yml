@@ -87,7 +87,7 @@ jobs:
     timeout-minutes: 50
     env:
       AVD_NAME: melanintruth_api34_atd
-      ANDROID_AVD_HOME: ${{ runner.temp }}/android-avd
+      ANDROID_AVD_HOME: ${{ github.workspace }}/.android/avd
       ANDROID_SYSTEM_IMAGE: system-images;android-34;aosp_atd;x86_64
       DIAGNOSTICS_DIR: ${{ github.workspace }}/native-smoke-artifacts
     defaults:

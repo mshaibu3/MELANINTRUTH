@@ -86,6 +86,7 @@ jobs:
     env:
       AVD_NAME: melanintruth_api34_atd
       ANDROID_SYSTEM_IMAGE: system-images;android-34;aosp_atd;x86_64
+      ANDROID_AVD_HOME: ${{ github.workspace }}/.android/avd
       DIAGNOSTICS_DIR: ${{ github.workspace }}/native-smoke-artifacts
     defaults:
       run:
@@ -115,7 +116,7 @@ jobs:
       - run: flutter pub get
       - name: Initialise Android device diagnostics
         run: |
-          mkdir -p "$DIAGNOSTICS_DIR"
+          mkdir -p "$DIAGNOSTICS_DIR" "$ANDROID_AVD_HOME"
           printf 'Android device smoke runner initialised at %s\n' \
             "$(date -u +%FT%TZ)" > "$DIAGNOSTICS_DIR/runner-status.txt"
           flutter doctor -v > "$DIAGNOSTICS_DIR/flutter-doctor.txt" 2>&1 || true
@@ -125,8 +126,8 @@ jobs:
         run: |
           set -o pipefail
           {
-            printf 'ANDROID_HOME=%s\nANDROID_SDK_ROOT=%s\n' \
-              "${ANDROID_HOME:-}" "${ANDROID_SDK_ROOT:-}"
+            printf 'ANDROID_HOME=%s\nANDROID_SDK_ROOT=%s\nANDROID_AVD_HOME=%s\n' \
+              "${ANDROID_HOME:-}" "${ANDROID_SDK_ROOT:-}" "$ANDROID_AVD_HOME"
             find "$ANDROID_SDK_ROOT" -maxdepth 5 -type f \
               \( -name sdkmanager -o -name avdmanager \) \
               -print | sort
@@ -150,6 +151,7 @@ jobs:
         run: |
           set -o pipefail
           {
+            mkdir -p "$ANDROID_AVD_HOME"
             yes | "$SDKMANAGER" --licenses >/dev/null || true
             "$SDKMANAGER" --install \
               "platform-tools" \
@@ -159,14 +161,19 @@ jobs:
             echo no | "$AVDMANAGER" create avd \
               --force \
               --name "$AVD_NAME" \
-              --package "$ANDROID_SYSTEM_IMAGE"
-            cat >> "$HOME/.android/avd/$AVD_NAME.avd/config.ini" <<'EOF'
+              --package "$ANDROID_SYSTEM_IMAGE" \
+              --device pixel_6
+            AVD_CONFIG="$(find "$ANDROID_AVD_HOME" -type f \
+              -path "*/$AVD_NAME.avd/config.ini" -print -quit)"
+            test -n "$AVD_CONFIG"
+            cat >> "$AVD_CONFIG" <<'EOF'
           hw.cpu.ncore=2
           hw.ramSize=2048
           hw.gpu.enabled=yes
           hw.gpu.mode=swiftshader_indirect
           disk.dataPartition.size=2048M
           EOF
+            printf 'AVD_CONFIG=%s\n' "$AVD_CONFIG" >> "$GITHUB_ENV"
             "$AVDMANAGER" list avd
           } 2>&1 | tee "$DIAGNOSTICS_DIR/avd-prepare.txt"
       - name: Boot Android ATD without hardware acceleration
@@ -212,8 +219,9 @@ jobs:
           timeout 10s adb shell getprop > "$DIAGNOSTICS_DIR/adb-getprop.txt" 2>&1 || true
           timeout 15s adb logcat -d -t 15000 > "$DIAGNOSTICS_DIR/adb-logcat.txt" 2>&1 || true
           ps auxww > "$DIAGNOSTICS_DIR/processes.txt" 2>&1 || true
-          cp "$HOME/.android/avd/$AVD_NAME.avd/config.ini" \
-            "$DIAGNOSTICS_DIR/avd-config.ini.txt" 2>/dev/null || true
+          if [ -n "${AVD_CONFIG:-}" ]; then
+            cp "$AVD_CONFIG" "$DIAGNOSTICS_DIR/avd-config.ini.txt" 2>/dev/null || true
+          fi
       - name: Upload Android device diagnostics
         if: always()
         uses: actions/upload-artifact@v4

@@ -208,9 +208,9 @@ jobs:
       - name: Capture Android device diagnostics
         if: always()
         run: |
-          adb devices -l > "$DIAGNOSTICS_DIR/adb-devices.txt" 2>&1 || true
-          adb shell getprop > "$DIAGNOSTICS_DIR/adb-getprop.txt" 2>&1 || true
-          adb logcat -d -t 15000 > "$DIAGNOSTICS_DIR/adb-logcat.txt" 2>&1 || true
+          timeout 10s adb devices -l > "$DIAGNOSTICS_DIR/adb-devices.txt" 2>&1 || true
+          timeout 10s adb shell getprop > "$DIAGNOSTICS_DIR/adb-getprop.txt" 2>&1 || true
+          timeout 15s adb logcat -d -t 15000 > "$DIAGNOSTICS_DIR/adb-logcat.txt" 2>&1 || true
           ps auxww > "$DIAGNOSTICS_DIR/processes.txt" 2>&1 || true
           cp "$HOME/.android/avd/$AVD_NAME.avd/config.ini" \
             "$DIAGNOSTICS_DIR/avd-config.ini.txt" 2>/dev/null || true
@@ -225,7 +225,7 @@ jobs:
       - name: Stop Android ATD
         if: always()
         run: |
-          adb emu kill >/dev/null 2>&1 || true
+          timeout 10s adb emu kill >/dev/null 2>&1 || true
           if [ -f "$DIAGNOSTICS_DIR/emulator.pid" ]; then
             kill "$(cat "$DIAGNOSTICS_DIR/emulator.pid")" >/dev/null 2>&1 || true
           fi

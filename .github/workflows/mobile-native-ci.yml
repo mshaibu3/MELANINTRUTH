@@ -110,6 +110,8 @@ jobs:
             android-smoke-${{ runner.os }}-
       - run: flutter pub get
       - name: Run consent and accessibility smoke test on Android
+        id: smoke
+        continue-on-error: true
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
@@ -121,22 +123,26 @@ jobs:
             -camera-back none -camera-front none
           working-directory: melanintruth-ai/apps/mobile
           script: |
-            mkdir -p artifacts
+            DIAGNOSTICS="$GITHUB_WORKSPACE/native-smoke-artifacts"
+            mkdir -p "$DIAGNOSTICS"
             bash -o pipefail -c '
-              trap "adb devices -l > artifacts/adb-devices.txt 2>&1 || true; adb logcat -d -t 10000 > artifacts/adb-logcat.txt 2>&1 || true" EXIT
+              trap "adb devices -l > $GITHUB_WORKSPACE/native-smoke-artifacts/adb-devices.txt 2>&1 || true; adb logcat -d -t 10000 > $GITHUB_WORKSPACE/native-smoke-artifacts/adb-logcat.txt 2>&1 || true" EXIT
               timeout --foreground --signal=TERM --kill-after=30s 25m \
                 flutter test integration_test/app_smoke_test.dart \
-                -d emulator-5554 --timeout 5m --no-pub \
-                2>&1 | tee artifacts/android-device-smoke.txt
+                -d emulator-5554 --timeout 5m --no-pub --reporter expanded \
+                2>&1 | tee "$GITHUB_WORKSPACE/native-smoke-artifacts/android-device-smoke.txt"
             '
       - name: Upload Android device diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: android-device-smoke-diagnostics
-          path: melanintruth-ai/apps/mobile/artifacts/*.txt
-          if-no-files-found: warn
+          path: native-smoke-artifacts/*.txt
+          if-no-files-found: error
           retention-days: 14
+      - name: Enforce Android device smoke result
+        if: always()
+        run: test "${{ steps.smoke.outcome }}" = "success"
 
   native-release-gate:
     if: always()

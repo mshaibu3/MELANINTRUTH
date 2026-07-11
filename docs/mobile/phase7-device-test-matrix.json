@@ -1,0 +1,85 @@
+{
+  "schema_version": "1.0",
+  "required_evidence_status": "pending_external_execution",
+  "android": [
+    {
+      "profile": "modern-phone",
+      "minimum_os": 34,
+      "form_factor": "phone",
+      "required_scenarios": [
+        "camera_capture_success",
+        "camera_permission_denied",
+        "camera_permission_denied_permanently",
+        "capture_cancelled",
+        "offline_before_upload",
+        "network_loss_during_upload",
+        "expired_upload_ticket_recovery",
+        "consent_withdrawal",
+        "privacy_export",
+        "privacy_deletion",
+        "screen_reader_navigation",
+        "large_text_layout",
+        "minimum_tap_targets"
+      ]
+    },
+    {
+      "profile": "minimum-supported-phone",
+      "minimum_os": 23,
+      "form_factor": "phone",
+      "required_scenarios": [
+        "install_and_launch",
+        "camera_permission_denied",
+        "capture_cancelled",
+        "consent_gating",
+        "privacy_deletion"
+      ]
+    }
+  ],
+  "ios": [
+    {
+      "profile": "modern-iphone",
+      "minimum_os": "17.0",
+      "form_factor": "phone",
+      "required_scenarios": [
+        "camera_capture_success",
+        "camera_permission_denied",
+        "camera_permission_recovery_from_settings",
+        "capture_cancelled",
+        "offline_before_upload",
+        "network_loss_during_upload",
+        "expired_upload_ticket_recovery",
+        "consent_withdrawal",
+        "privacy_export",
+        "privacy_deletion",
+        "voiceover_navigation",
+        "dynamic_type_layout",
+        "minimum_tap_targets"
+      ]
+    },
+    {
+      "profile": "minimum-supported-iphone",
+      "minimum_os": "13.0",
+      "form_factor": "phone",
+      "required_scenarios": [
+        "install_and_launch",
+        "camera_permission_denied",
+        "capture_cancelled",
+        "consent_gating",
+        "privacy_deletion"
+      ]
+    }
+  ],
+  "evidence_requirements": {
+    "per_scenario": [
+      "device_model",
+      "os_version",
+      "build_commit",
+      "tester",
+      "timestamp_utc",
+      "result",
+      "evidence_uri",
+      "defect_reference_if_failed"
+    ],
+    "acceptance": "Every required scenario must have a passing record on the release-candidate commit."
+  }
+}

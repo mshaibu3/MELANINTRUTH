@@ -15,7 +15,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: mobile-native-ci-${{ github.ref }}
+  group: mobile-native-ci-${{ github.ref }}-${{ github.sha }}
   cancel-in-progress: true
 
 jobs:

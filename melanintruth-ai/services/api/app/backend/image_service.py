@@ -4,6 +4,7 @@ import hashlib
 import secrets
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+from threading import RLock
 
 from .audit import AuditService
 from .consent import ConsentService
@@ -14,6 +15,7 @@ from .repository import InMemoryRepository
 ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/heic"}
 MAX_IMAGE_BYTES = 10_485_760
 UPLOAD_TICKET_TTL = timedelta(minutes=5)
+COMPLETED_UPLOAD_REPLAY_TTL = timedelta(hours=1)
 
 
 @dataclass(frozen=True)
@@ -31,6 +33,18 @@ class UploadTicket:
     @property
     def expired(self) -> bool:
         return datetime.now(timezone.utc) >= self.expires_at
+
+
+@dataclass(frozen=True)
+class CompletedUpload:
+    image: ImageCapture
+    user_id: str
+    content_type: str
+    size_bytes: int
+    checksum_sha256: str
+    idempotency_key_digest: str
+    ticket_expires_at: datetime
+    replay_expires_at: datetime
 
 
 class LocalStorageProvider:
@@ -78,7 +92,35 @@ class ImageService:
         self.consent = consent
         self.storage = storage or LocalStorageProvider()
         self._upload_tickets: dict[str, UploadTicket] = {}
-        self._completed_uploads: dict[str, ImageCapture] = {}
+        self._completed_uploads: dict[str, CompletedUpload] = {}
+        self._upload_lock = RLock()
+
+    @staticmethod
+    def _idempotency_key_digest(value: str) -> str:
+        return hashlib.sha256(value.encode()).hexdigest()
+
+    def _cleanup_upload_state(
+        self,
+        current_time: datetime,
+        *,
+        preserve_upload_id: str | None = None,
+    ) -> None:
+        expired_tickets = [
+            upload_id
+            for upload_id, ticket in self._upload_tickets.items()
+            if upload_id != preserve_upload_id and ticket.expires_at <= current_time
+        ]
+        for upload_id in expired_tickets:
+            self._upload_tickets.pop(upload_id, None)
+
+        expired_completions = [
+            upload_id
+            for upload_id, completion in self._completed_uploads.items()
+            if completion.replay_expires_at <= current_time
+            or completion.image.deleted_at is not None
+        ]
+        for upload_id in expired_completions:
+            self._completed_uploads.pop(upload_id, None)
 
     def _validate_upload_metadata(
         self,
@@ -94,9 +136,7 @@ class ImageService:
         if len(normalized_checksum) != 64 or any(
             character not in "0123456789abcdef" for character in normalized_checksum
         ):
-            raise ValidationError(
-                "checksum_sha256 must be a lowercase SHA-256 hex digest"
-            )
+            raise ValidationError("checksum_sha256 must be a lowercase SHA-256 hex digest")
         return normalized_checksum
 
     def request_upload(
@@ -124,7 +164,9 @@ class ImageService:
             expires_at=datetime.now(timezone.utc) + UPLOAD_TICKET_TTL,
             idempotency_key=secrets.token_urlsafe(24),
         )
-        self._upload_tickets[ticket.upload_id] = ticket
+        with self._upload_lock:
+            self._cleanup_upload_state(datetime.now(timezone.utc))
+            self._upload_tickets[ticket.upload_id] = ticket
         self.audit.record(
             "image.upload_requested",
             "image",
@@ -175,30 +217,64 @@ class ImageService:
         checksum_sha256: str,
     ) -> tuple[ImageCapture, bool]:
         self.consent.assert_granted(user_id, ConsentPurpose.IMAGE_PROCESSING)
-        ticket = self._upload_tickets.get(upload_id)
-        if ticket is None or ticket.user_id != user_id:
-            raise NotFoundError("upload ticket not found")
-        if not secrets.compare_digest(ticket.idempotency_key, idempotency_key):
-            raise AuthorizationError("upload idempotency key is invalid")
-        if ticket.expired:
-            raise ValidationError("upload ticket expired")
         normalized_checksum = self._validate_upload_metadata(
             content_type,
             size_bytes,
             checksum_sha256,
         )
-        if (
-            ticket.content_type != content_type
-            or ticket.size_bytes != size_bytes
-            or ticket.checksum_sha256 != normalized_checksum
-        ):
-            raise ConflictError("upload completion metadata does not match the ticket")
-        existing = self._completed_uploads.get(upload_id)
-        if existing is not None:
-            return existing, False
-        image = self.complete_upload(user_id, ticket, content_type, size_bytes)
-        self._completed_uploads[upload_id] = image
-        return image, True
+        current_time = datetime.now(timezone.utc)
+        supplied_key_digest = self._idempotency_key_digest(idempotency_key)
+
+        with self._upload_lock:
+            self._cleanup_upload_state(
+                current_time,
+                preserve_upload_id=upload_id,
+            )
+            completed = self._completed_uploads.get(upload_id)
+            if completed is not None:
+                if completed.user_id != user_id:
+                    raise NotFoundError("upload ticket not found")
+                if not secrets.compare_digest(
+                    completed.idempotency_key_digest,
+                    supplied_key_digest,
+                ):
+                    raise AuthorizationError("upload idempotency key is invalid")
+                if (
+                    completed.content_type != content_type
+                    or completed.size_bytes != size_bytes
+                    or completed.checksum_sha256 != normalized_checksum
+                ):
+                    raise ConflictError("upload completion metadata does not match the ticket")
+                return completed.image, False
+
+            ticket = self._upload_tickets.get(upload_id)
+            if ticket is None or ticket.user_id != user_id:
+                raise NotFoundError("upload ticket not found")
+            if not secrets.compare_digest(ticket.idempotency_key, idempotency_key):
+                raise AuthorizationError("upload idempotency key is invalid")
+            if ticket.expired:
+                self._upload_tickets.pop(upload_id, None)
+                raise ValidationError("upload ticket expired")
+            if (
+                ticket.content_type != content_type
+                or ticket.size_bytes != size_bytes
+                or ticket.checksum_sha256 != normalized_checksum
+            ):
+                raise ConflictError("upload completion metadata does not match the ticket")
+
+            image = self.complete_upload(user_id, ticket, content_type, size_bytes)
+            self._completed_uploads[upload_id] = CompletedUpload(
+                image=image,
+                user_id=user_id,
+                content_type=content_type,
+                size_bytes=size_bytes,
+                checksum_sha256=normalized_checksum,
+                idempotency_key_digest=supplied_key_digest,
+                ticket_expires_at=ticket.expires_at,
+                replay_expires_at=current_time + COMPLETED_UPLOAD_REPLAY_TTL,
+            )
+            self._upload_tickets.pop(upload_id, None)
+            return image, True
 
     def public_metadata(self, user_id: str, image_id: str) -> dict[str, str | int]:
         image = self.repo.images.get(image_id)

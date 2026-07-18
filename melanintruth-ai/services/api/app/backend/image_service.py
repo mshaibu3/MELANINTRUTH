@@ -146,6 +146,8 @@ class ImageService:
         size_bytes: int,
         checksum_sha256: str,
     ) -> UploadTicket:
+        with self._upload_lock:
+            self._cleanup_upload_state(datetime.now(timezone.utc))
         self.consent.assert_granted(user_id, ConsentPurpose.IMAGE_PROCESSING)
         normalized_checksum = self._validate_upload_metadata(
             content_type,
@@ -216,6 +218,11 @@ class ImageService:
         size_bytes: int,
         checksum_sha256: str,
     ) -> tuple[ImageCapture, bool]:
+        with self._upload_lock:
+            self._cleanup_upload_state(
+                datetime.now(timezone.utc),
+                preserve_upload_id=upload_id,
+            )
         self.consent.assert_granted(user_id, ConsentPurpose.IMAGE_PROCESSING)
         normalized_checksum = self._validate_upload_metadata(
             content_type,

@@ -173,6 +173,55 @@ def test_upload_ticket_and_completion_caches_are_bounded_by_expiry():
     assert completed_ticket["upload_id"] not in app.services.images._completed_uploads
 
 
+def test_revoked_consent_does_not_prevent_expired_upload_state_cleanup():
+    app = Phase7ApiApplication()
+    tokens = bootstrap_user(app, "revoked-cleanup@example.com")
+    _, expired_ticket = app.upload_request(
+        tokens["access_token"],
+        ticket_payload("3" * 64),
+    )
+    stored_ticket = app.services.images._upload_tickets[expired_ticket["upload_id"]]
+    app.services.images._upload_tickets[expired_ticket["upload_id"]] = replace(
+        stored_ticket,
+        expires_at=datetime.now(timezone.utc) - timedelta(seconds=1),
+    )
+
+    _, completed_ticket = app.upload_request(
+        tokens["access_token"],
+        ticket_payload("4" * 64),
+    )
+    app.upload_complete(
+        tokens["access_token"],
+        completion_payload(completed_ticket, "4" * 64),
+    )
+    completed = app.services.images._completed_uploads[completed_ticket["upload_id"]]
+    app.services.images._completed_uploads[completed_ticket["upload_id"]] = replace(
+        completed,
+        replay_expires_at=datetime.now(timezone.utc) - timedelta(seconds=1),
+    )
+
+    _, consent = app.list_consent(tokens["access_token"])
+    app.revoke_consent(tokens["access_token"], consent["consent"][0]["id"])
+
+    status, response = app.upload_complete(
+        tokens["access_token"],
+        completion_payload(expired_ticket, "3" * 64),
+    )
+
+    assert status == 403
+    assert response["error"]["code"] == "CONSENT_REQUIRED"
+    assert completed_ticket["upload_id"] not in app.services.images._completed_uploads
+
+    request_status, request_response = app.upload_request(
+        tokens["access_token"],
+        ticket_payload("5" * 64),
+    )
+
+    assert request_status == 403
+    assert request_response["error"]["code"] == "CONSENT_REQUIRED"
+    assert expired_ticket["upload_id"] not in app.services.images._upload_tickets
+
+
 def test_expired_ticket_and_cross_user_key_are_rejected():
     app = Phase7ApiApplication()
     owner = bootstrap_user(app, "owner@example.com")

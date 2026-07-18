@@ -36,9 +36,16 @@ The API issues a unique upload ID, an expiry timestamp, and a server-generated i
 5. treat completion replay as success when the API returns the original image ID;
 6. never retry analysis creation automatically.
 
+Upload completion is atomic within the API process. A successful completion removes
+the live ticket and retains only a hashed idempotency key plus the minimum metadata
+needed for replay for one hour. Completed requests replay the original image ID even
+after the five-minute upload ticket expires. Expired tickets and replay records are
+removed opportunistically, and revoked image-processing consent blocks both first-time
+completion and replay.
+
 ## Privacy and store declarations
 
-* `ios/Runner/PrivacyInfo.xcprivacy` declares photo/video collection for app functionality and no tracking.
+* `ios/Runner/PrivacyInfo.xcprivacy` declares linked email and photo/video collection for app functionality and no tracking.
 * `docs/mobile/google-play-data-safety.json` is the machine-readable source for the Google Play data-safety declaration.
 * The application continues to expose account/data deletion and export controls.
 * The product must not claim exact biological melanin measurement, beautification, whitening, lightening, smoothing, reshaping, or identity alteration.

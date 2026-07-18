@@ -37,8 +37,26 @@ def verify_ios_privacy_manifest() -> None:
         photo_records[0].get("NSPrivacyCollectedDataTypeTracking") is False,
         "photo/video data must not be used for tracking",
     )
+    email_records = [
+        item
+        for item in collected
+        if item.get("NSPrivacyCollectedDataType")
+        == "NSPrivacyCollectedDataTypeEmailAddress"
+    ]
+    require(email_records, "email collection must be declared")
+    require(
+        email_records[0].get("NSPrivacyCollectedDataTypeLinked") is True,
+        "email data must be declared as linked to the user",
+    )
+    require(
+        email_records[0].get("NSPrivacyCollectedDataTypeTracking") is False,
+        "email data must not be used for tracking",
+    )
     project = read(MOBILE / "ios/Runner.xcodeproj/project.pbxproj")
-    require("PrivacyInfo.xcprivacy" in project, "privacy manifest is not referenced by Xcode")
+    require(
+        "PrivacyInfo.xcprivacy" in project,
+        "privacy manifest is not referenced by Xcode",
+    )
     require(
         "PrivacyInfo.xcprivacy in Resources" in project,
         "privacy manifest is not copied into the iOS application bundle",
@@ -65,7 +83,10 @@ def verify_google_data_safety() -> None:
     )
     data_types = declaration.get("data_types", [])
     require(
-        any(item.get("type") == "photos" and item.get("collected") for item in data_types),
+        any(
+            item.get("type") == "photos" and item.get("collected")
+            for item in data_types
+        ),
         "photo collection must be declared",
     )
 
@@ -90,7 +111,10 @@ def verify_device_matrix() -> None:
             "consent_gating" if platform == "android" else "privacy_deletion",
         ):
             require(required in scenarios, f"{platform} matrix is missing {required}")
-        require("privacy_deletion" in scenarios, f"{platform} matrix is missing privacy deletion")
+        require(
+            "privacy_deletion" in scenarios,
+            f"{platform} matrix is missing privacy deletion",
+        )
     evidence = matrix.get("evidence_requirements", {}).get("per_scenario", [])
     for field in (
         "device_model",
@@ -110,8 +134,12 @@ def verify_upload_contract() -> None:
     for token in ("upload_id", "expires_at", "idempotency_key"):
         require(token in backend, f"backend upload response is missing {token}")
         require(token in gateway, f"mobile upload flow is missing {token}")
-    require("UPLOAD_EXPIRED" in backend, "expired upload tickets need a stable error code")
-    require("complete_upload_ticket" in service, "idempotent completion service is missing")
+    require(
+        "UPLOAD_EXPIRED" in backend, "expired upload tickets need a stable error code"
+    )
+    require(
+        "complete_upload_ticket" in service, "idempotent completion service is missing"
+    )
     require("UploadCompleteRequest" in schema, "upload completion schema is missing")
     require(
         "Signed image uploads must use HTTPS" in gateway,
@@ -121,8 +149,13 @@ def verify_upload_contract() -> None:
 
 def verify_release_workflow() -> None:
     workflow = read(REPO / ".github/workflows/release-candidate.yml")
-    require("workflow_dispatch:" in workflow, "signed builds must be explicitly dispatched")
-    require("environment: mobile-release" in workflow, "signed jobs need a protected environment")
+    require(
+        "workflow_dispatch:" in workflow, "signed builds must be explicitly dispatched"
+    )
+    require(
+        "environment: mobile-release" in workflow,
+        "signed jobs need a protected environment",
+    )
     require("release-candidate-policy" in workflow, "release policy job is missing")
     for secret in (
         "ANDROID_KEYSTORE_BASE64",
@@ -136,9 +169,15 @@ def verify_release_workflow() -> None:
         "APPLE_TEAM_ID",
     ):
         require(f"secrets.{secret}" in workflow, f"workflow is missing {secret}")
-    require("permissions:\n  contents: read" in workflow, "workflow permissions must be read-only")
+    require(
+        "permissions:\n  contents: read" in workflow,
+        "workflow permissions must be read-only",
+    )
     require("timeout-minutes:" in workflow, "release jobs must be bounded")
-    require("cancel-in-progress: true" in workflow, "release concurrency must cancel stale runs")
+    require(
+        "cancel-in-progress: true" in workflow,
+        "release concurrency must cancel stale runs",
+    )
 
 
 def verify_release_boundary() -> None:

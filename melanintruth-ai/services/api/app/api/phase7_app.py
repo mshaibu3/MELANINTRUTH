@@ -5,6 +5,7 @@ from typing import Any
 from app.api.phase3_app import ApiApplication
 from app.backend.errors import (
     AuthorizationError,
+    ConsentRequiredError,
     ConflictError,
     NotFoundError,
     ValidationError,
@@ -61,6 +62,8 @@ class Phase7ApiApplication(ApiApplication):
                 "upload_id": payload["upload_id"],
                 "idempotent_replay": not created,
             }
+        except ConsentRequiredError as exc:
+            return 403, structured_error("CONSENT_REQUIRED", str(exc))
         except AuthorizationError as exc:
             return 403, structured_error("UPLOAD_KEY_INVALID", str(exc))
         except NotFoundError as exc:
